@@ -9,4 +9,16 @@ public class GameClient
     private PrintWriter out;
     private GameWindow ui;
 
+    public void connect(String ip, int port) {
+
+    }
+
+    public void sendAction(String actionMsg) {
+
+    }
+
+    public void startListening() {
+
+    }
+
 }

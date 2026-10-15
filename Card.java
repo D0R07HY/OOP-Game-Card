@@ -5,5 +5,6 @@ abstract class Card
     protected String name;
     protected String type;
 
+    public abstract void playEffect(Player owner, Player target, GameState state);
 
 }
