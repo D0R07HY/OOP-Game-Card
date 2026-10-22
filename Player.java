@@ -64,7 +64,6 @@ public class Player {
     public void discardToLimit(Card c)
     {
         hand.remove(c);
-        //ส่งไป DropZone
     }
 
 }
