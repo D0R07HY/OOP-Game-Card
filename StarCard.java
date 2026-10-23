@@ -2,12 +2,14 @@ public class StarCard extends Card {
 
     private int hp;
     private int maxHp;
+    private int orbitPosition;
 
     // เพิ่ม imagePath
-    public StarCard(String id, String name, int hp, String imagePath) {
+    public StarCard(String id, String name, int hp, String imagePath, int orbitPosition) {
         super(id, name, "STAR", imagePath);
         this.maxHp = hp;
         this.hp = hp;
+        this.orbitPosition = orbitPosition;
     }
 
     public int getHp() {
@@ -16,6 +18,10 @@ public class StarCard extends Card {
 
     public int getMaxHp() {
         return maxHp;
+    }
+
+    public int getOrbitPosition(){
+        return this.orbitPosition;
     }
 
     public void takeDamage(int amount) {
@@ -42,16 +48,13 @@ public class StarCard extends Card {
         return hp <= 0;
     }
 
-    // อัปเดตพารามิเตอร์ให้ตรงกับคลาสแม่
     @Override
     public void playEffect(Player owner, Player target, StarCard targetStar, GameState state) {
-        // วางดาวลงกระดานของตัวเอง ถ้าสนามยังไม่เต็ม 9 ดวง
-        // (สำหรับการ์ดดาว target และ targetStar มักจะไม่ได้ใช้ เพราะมันคือการร่ายลงสนามตัวเอง)
-        if (owner.getField().size() < 9) {
-            owner.getField().add(this);
-            System.out.println("[Effect] " + owner.getUsername() + " วางดาว " + this.getName() + " ลงบนสนาม");
+        // โยนหน้าที่การจัดวางไปให้ Player เป็นคนจัดการ เพื่อเช็คว่าช่องนั้นว่างหรือไม่
+        if (owner.placeStar(this)) {
+            System.out.println("[Effect] " + owner.getUsername() + " วางดาว " + this.getName() + " ลงในตำแหน่งวงโคจรที่ " + orbitPosition);
         } else {
-             System.out.println("[Effect] วางดาวไม่ได้ สนามของ " + owner.getUsername() + " เต็มแล้ว");
+            System.out.println("[Effect] ร่ายไม่สำเร็จ! ตำแหน่งวงโคจรของ " + this.getName() + " มีดาวอยู่แล้ว");
         }
     }
 }
