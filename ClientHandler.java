@@ -9,7 +9,7 @@ import java.nio.charset.StandardCharsets;
 public class ClientHandler extends Thread {
 
     private final Socket socket;
-    private final ServerContext context; // เปลี่ยนมาใช้ Interface จากไฟล์ใหม่ที่เราเพิ่งสร้าง
+    private final ServerContext context;
     private final BufferedReader in;
     private final PrintWriter out;
     private volatile boolean running;
