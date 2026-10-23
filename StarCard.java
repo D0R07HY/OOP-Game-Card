@@ -3,8 +3,9 @@ public class StarCard extends Card {
     private int hp;
     private int maxHp;
 
-    public StarCard(String id, String name, int hp) {
-        super(id, name, "STAR");
+    // เพิ่ม imagePath
+    public StarCard(String id, String name, int hp, String imagePath) {
+        super(id, name, "STAR", imagePath);
         this.maxHp = hp;
         this.hp = hp;
     }
@@ -41,11 +42,16 @@ public class StarCard extends Card {
         return hp <= 0;
     }
 
+    // อัปเดตพารามิเตอร์ให้ตรงกับคลาสแม่
     @Override
-    public void playEffect(Player owner, Player target, GameState state) {
-        // วางดาวลงกระดาน ถ้าสนามยังไม่เต็ม 9 ดวง
+    public void playEffect(Player owner, Player target, StarCard targetStar, GameState state) {
+        // วางดาวลงกระดานของตัวเอง ถ้าสนามยังไม่เต็ม 9 ดวง
+        // (สำหรับการ์ดดาว target และ targetStar มักจะไม่ได้ใช้ เพราะมันคือการร่ายลงสนามตัวเอง)
         if (owner.getField().size() < 9) {
             owner.getField().add(this);
+            System.out.println("[Effect] " + owner.getUsername() + " วางดาว " + this.getName() + " ลงบนสนาม");
+        } else {
+             System.out.println("[Effect] วางดาวไม่ได้ สนามของ " + owner.getUsername() + " เต็มแล้ว");
         }
     }
 }
