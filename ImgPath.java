@@ -1,6 +1,8 @@
 import java.io.File;
 
 public class ImgPath {
+
+  
   public static String The_Sun = System.getProperty("user.dir") + File.separator + "the_sun.png";
   public static String Mercury = System.getProperty("user.dir") + File.separator + "mercury.png";
   public static String Venus = System.getProperty("user.dir") + File.separator + "venus.png";
