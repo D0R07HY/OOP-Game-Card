@@ -28,18 +28,45 @@ public class SpecialCard extends Card
         switch (name)
         {
             case "Meteor Strike":
-
-                break;
+                if (target == null || target.getField().isEmpty())
+                    {
+                        return;
+                    }
+                if(target.hasForceField() == true)
+                    {
+                        target.setHasForceField(false);
+                    }
+                    break;
 
             case "Supernova":
-
+                if(target == null || target.getField().isEmpty())
+                    {
+                        return;
+                    }            
                 break;
-
+            
             case "Pulsar":
+                if(target == null || target.getField().isEmpty())
+                    {
+                        return;
+                    }
+                if(owner.getHand().isEmpty())
+                    {
+                        return;
+                    }
+
+                owner.removeCardFromHand(owner.getHand().get(0));
+                target.removeStarFromField(target.getField().get(0));
 
                 break;
 
             case "Force Field":
+                if(owner.getField().isEmpty())
+                    { 
+                        return;       
+                    }
+                
+                owner.setHasForceField(true);
 
                 break;
             
