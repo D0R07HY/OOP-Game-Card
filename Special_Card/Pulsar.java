@@ -19,7 +19,13 @@ public class Pulsar extends SpecialCard
             {
                 return;
             }
+
         if (target.getField()[pos] != targetStar) 
+            {
+                return;
+            }
+
+        if (target.isCloaked(targetStar)) 
             {
                 return;
             }
@@ -29,12 +35,10 @@ public class Pulsar extends SpecialCard
                 return;
             }
 
-        // Cost: ทิ้งการ์ด 1 ใบจากมือ
         Card cost = owner.getHand().remove(0);
-        // TODO: ย้าย cost ลง Drop Zone (Player ยังไม่มี dropZone)
+        owner.addToDropZone(cost);
 
-        // ทำลายดาวทันทีโดยไม่สน HP ที่เหลือ
         target.removeStarFromField(targetStar);
-        // TODO: ย้าย targetStar ลง Drop Zone (Player ยังไม่มี dropZone)
+        target.addToDropZone(targetStar);
     }
 }

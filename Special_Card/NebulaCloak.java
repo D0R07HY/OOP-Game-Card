@@ -9,7 +9,22 @@ public class NebulaCloak extends SpecialCard
     @Override
     public void playEffect(Player owner, Player target, StarCard targetStar, GameState state) 
     {
-        // TODO: ยังเขียนไม่ได้ — ต้องมีสถานะการซ่อนรายดวงใน Player ก่อน
-        // และต้องมีการเช็คสถานะนี้ในการ์ดโจมตีทุกใบ
+        if (owner == null || targetStar == null) 
+            {
+                return;
+            }
+
+        int pos = targetStar.getOrbitPosition();
+        if (pos < 0 || pos >= owner.getField().length) 
+            {
+                return;
+            }
+
+        if (owner.getField()[pos] != targetStar) 
+            {
+                return;
+            }
+
+        owner.addCloak(targetStar);
     }
 }

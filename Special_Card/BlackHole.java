@@ -13,12 +13,12 @@ public class BlackHole extends SpecialCard
             {
                 return;
             }
+
         if (state.isBlackHoleUsed()) 
             {
                 return;
             }
 
-        // ทำลายดาวทุกดวงบนสนามของทุกคน รวมถึงผู้ใช้การ์ด
         for (Player p : state.getPlayers()) 
             {
                 for (StarCard star : p.getField()) 
@@ -26,10 +26,10 @@ public class BlackHole extends SpecialCard
                         if (star != null) 
                             {
                                 p.removeStarFromField(star);
-                                // TODO: ย้าย star ลง Drop Zone (Player ยังไม่มี dropZone)
+                                p.addToDropZone(star);
                             }
+                    }
             }
-        }
 
         state.setBlackHoleUsed(true);
     }

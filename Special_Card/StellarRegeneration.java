@@ -19,12 +19,12 @@ public class StellarRegeneration extends SpecialCard
             {
                 return;
             }
+
         if (owner.getField()[pos] != targetStar) 
             {
                 return;
             }
 
-        // heal() ตัดเพดาน maxHp ให้แล้วใน StarCard
         targetStar.heal(3);
     }
 }

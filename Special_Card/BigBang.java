@@ -14,8 +14,24 @@ public class BigBang extends SpecialCard
                 return;
             }
 
-        // TODO: ค้นหา "The Sun" จากกองการ์ดหรือ Drop Zone แล้ววางลงสนามฟรี
-        // ยังเขียนไม่ได้เพราะ Deck ไม่มีเมธอดค้นหา และ Player ไม่มี dropZone
+        Card sun = owner.takeFromDropZone("The Sun");
+
+        if (sun != null) 
+            {
+                if (sun instanceof StarCard) 
+                    {
+                        if (!owner.placeStar((StarCard) sun)) 
+                            {
+                                owner.addToDropZone(sun);
+                            }
+                    }
+                else 
+                    {
+                        owner.addToDropZone(sun);
+                    }
+            }
+
+        // TODO: ค้นหา "The Sun" จากกองการ์ดยังทำไม่ได้ เพราะ Deck ไม่มีเมธอดค้นหา
 
         for (StarCard star : owner.getField()) 
             {
@@ -23,6 +39,6 @@ public class BigBang extends SpecialCard
                     {
                         star.heal(star.getMaxHp());
                     }
-        }
+            }
     }
 }

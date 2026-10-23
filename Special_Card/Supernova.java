@@ -14,8 +14,6 @@ public class Supernova extends SpecialCard
                 return;
             }
 
-        // TODO: ยังไม่รองรับ Force Field / Nebula Cloak เพราะ Player ยังไม่มีสถานะรายดวง
-
         for (StarCard star : target.getField()) 
             {
                 if (star == null) 
@@ -23,13 +21,24 @@ public class Supernova extends SpecialCard
                         continue;
                     }
 
-            star.takeDamage(1);
+                if (target.isCloaked(star)) 
+                    {
+                        continue;
+                    }
 
-            if (star.isDestroyed()) 
-                {
-                    target.removeStarFromField(star);
-                    // TODO: ย้าย star ลง Drop Zone (Player ยังไม่มี dropZone)
-                }
-        }
+                if (target.isShielded(star)) 
+                    {
+                        target.removeShield(star);
+                        continue;
+                    }
+
+                star.takeDamage(1);
+
+                if (star.isDestroyed()) 
+                    {
+                        target.removeStarFromField(star);
+                        target.addToDropZone(star);
+                    }
+            }
     }
 }

@@ -19,8 +19,20 @@ public class MeteorStrike extends SpecialCard
             {
                 return;
             }
+
         if (target.getField()[pos] != targetStar) 
             {
+                return;
+            }
+
+        if (target.isCloaked(targetStar)) 
+            {
+                return;
+            }
+
+        if (target.isShielded(targetStar)) 
+            {
+                target.removeShield(targetStar);
                 return;
             }
 
@@ -29,7 +41,7 @@ public class MeteorStrike extends SpecialCard
         if (targetStar.isDestroyed()) 
             {
                 target.removeStarFromField(targetStar);
-                // TODO: ย้าย targetStar ลง Drop Zone (Player ยังไม่มี dropZone)
+                target.addToDropZone(targetStar);
             }
     }
 }
