@@ -7,8 +7,9 @@ public abstract class SpecialCard extends Card {
 
     private String category;
 
-    public SpecialCard(String id, String name, String category) {
-        super(id, name, "SPECIAL");
+    // แก้ Constructor ให้รับข้อมูลตั้งต้นของการ์ด
+    public SpecialCard(String id, String name, String category, String imagePath) {
+        super(id, name, "SPECIAL", imagePath);
         this.category = category;
     }
 
