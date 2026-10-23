@@ -1,0 +1,186 @@
+[33mcommit 9691bfbc2aa792684a06b9b6036cf8adc54aa081[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmain[m[33m)[m
+Merge: e8c4c31 04de95a
+Author: Saya <Loamp.3.2.1.gg@gmail.com>
+Date:   Fri Oct 23 15:52:07 2026 +0700
+
+    Player
+
+[33mcommit e8c4c3135e20d318ac496378e60f853ca29542d2[m
+Author: Saya <Loamp.3.2.1.gg@gmail.com>
+Date:   Fri Oct 23 15:49:11 2026 +0700
+
+    Player
+
+[33mcommit 04de95a140c83cbe065f23a578fb66edd7d03911[m[33m ([m[1;31morigin/main[m[33m, [m[1;31morigin/HEAD[m[33m)[m
+Merge: 5bf222b 1aa7890
+Author: unknown <animeg4869@gmail.com>
+Date:   Fri Oct 23 15:39:58 2026 +0700
+
+    add file ImgPath
+
+[33mcommit 5bf222b6b0107fadc258fc7e588a8ec1a6301da9[m
+Merge: 97e69b9 5cd5301
+Author: unknown <animeg4869@gmail.com>
+Date:   Fri Oct 23 15:35:11 2026 +0700
+
+    12121
+
+[33mcommit 1aa7890196a189fdd367947e4869ad714e4c82e9[m
+Merge: a8d71d7 5cd5301
+Author: mok-68 <siksaka2006@gmail.com>
+Date:   Fri Oct 23 15:33:50 2026 +0700
+
+    pic
+
+[33mcommit a8d71d7ca2c03c6735422174529ce70f4cc953fd[m
+Author: mok-68 <siksaka2006@gmail.com>
+Date:   Fri Oct 23 15:31:15 2026 +0700
+
+    pic
+
+[33mcommit 97e69b993b77c347f4908ae28611f5223ae3fdc0[m
+Author: unknown <animeg4869@gmail.com>
+Date:   Fri Oct 23 14:53:45 2026 +0700
+
+    แก้ระบบ
+
+[33mcommit 5cd53019fb1c57c04b7b528978f1c443a3a56ec3[m
+Merge: f7cf54b 24ce709
+Author: Saya <Loamp.3.2.1.gg@gmail.com>
+Date:   Fri Oct 23 14:38:52 2026 +0700
+
+    222
+
+[33mcommit f7cf54b4781b6a7a20bd2c09b5a23de1f7531266[m
+Merge: 2ea2c82 e78ffe7
+Author: Saya <Loamp.3.2.1.gg@gmail.com>
+Date:   Fri Oct 23 14:32:54 2026 +0700
+
+    11
+
+[33mcommit 24ce7099c8062557bbecff6d24382e33e38859fb[m
+Author: unknown <animeg4869@gmail.com>
+Date:   Fri Oct 23 14:30:56 2026 +0700
+
+    แก้ไขการ์ด
+
+[33mcommit 2ea2c8237daebfba02b48cb6c225e2cc4e838288[m
+Author: Saya <Loamp.3.2.1.gg@gmail.com>
+Date:   Fri Oct 23 14:23:17 2026 +0700
+
+    Spec
+
+[33mcommit e78ffe7c1567636ce5121f9ad4226ed59f3d73fe[m
+Author: unknown <animeg4869@gmail.com>
+Date:   Fri Oct 23 14:20:44 2026 +0700
+
+    แก้special
+
+[33mcommit 01b5cf9180b286b626fd6ce4e03ddcbe80eb9780[m
+Merge: ffa1e9b 0c1ad79
+Author: unknown <animeg4869@gmail.com>
+Date:   Fri Oct 23 14:00:27 2026 +0700
+
+    แก้ เกมserver
+
+[33mcommit ffa1e9b6323e108a1450ba778ca5e9acfcfd9b74[m
+Author: unknown <animeg4869@gmail.com>
+Date:   Fri Oct 23 13:53:46 2026 +0700
+
+    fd
+
+[33mcommit 0c1ad797c88f18e696baf9010bb4f5fcc4fcdee5[m
+Author: mok-68 <siksaka2006@gmail.com>
+Date:   Fri Oct 23 13:50:34 2026 +0700
+
+    server
+
+[33mcommit 0cedb3f0c2834713b63f67ad5bd56010bcda52c0[m
+Author: mok-68 <siksaka2006@gmail.com>
+Date:   Fri Oct 23 13:31:09 2026 +0700
+
+    star
+
+[33mcommit 1d7b34254f7866e0df9705721f12570613fef7e2[m
+Merge: d51a329 8b4afa4
+Author: IT | Paphanthadanai <219800955+D0R07HY@users.noreply.github.com>
+Date:   Fri Oct 23 13:07:49 2026 +0700
+
+    Merge pull request #1 from D0R07HY/GameState
+    
+    Game state
+
+[33mcommit 8b4afa48f0bb77bf5a86ed24e1a66e9022123ccc[m
+Merge: 0281457 824dd28
+Author: unknown <animeg4869@gmail.com>
+Date:   Fri Oct 23 12:42:59 2026 +0700
+
+    เพิ่มระบบของ GameState
+
+[33mcommit d51a329456e80de75b54af0131b326dd672134a4[m
+Merge: 8f44ced 824dd28
+Author: mok-68 <siksaka2006@gmail.com>
+Date:   Fri Oct 23 11:53:00 2026 +0700
+
+    Merge branch 'main' of https://github.com/D0R07HY/OOP-Game-Card
+
+[33mcommit 824dd28a9ef3d7c1cec46f49f36c557b78524cea[m
+Author: unknown <animeg4869@gmail.com>
+Date:   Thu Oct 22 15:37:46 2026 +0700
+
+    feat: setup initial Deck and Player logic
+
+[33mcommit 028145741592614e18705c03687f0928677104ce[m
+Author: unknown <animeg4869@gmail.com>
+Date:   Thu Oct 22 15:29:11 2026 +0700
+
+    feat: setup initial Deck and Player logic
+
+[33mcommit 8f44ced405269a8754710ad434f5520d0c83277f[m
+Merge: dfba89e a32caa2
+Author: mok-68 <siksaka2006@gmail.com>
+Date:   Wed Oct 21 16:54:20 2026 +0700
+
+    Merge branch 'main' of https://github.com/D0R07HY/OOP-Game-Card
+
+[33mcommit dfba89eb1ea87498db32714dae845701723a428c[m
+Author: mok-68 <siksaka2006@gmail.com>
+Date:   Wed Oct 21 16:53:44 2026 +0700
+
+    hello
+
+[33mcommit a32caa2ddfd00b5f574a2a343f19f13fc5b8aae8[m
+Author: Saya <Loamp.3.2.1.gg@gmail.com>
+Date:   Wed Oct 21 16:10:20 2026 +0700
+
+    Update
+
+[33mcommit 9846a7ba6958cb224fde604daccf8808285a5516[m
+Author: Saya <Loamp.3.2.1.gg@gmail.com>
+Date:   Thu Oct 15 14:30:25 2026 +0700
+
+    Update Card,SpecialCard,GameClient
+
+[33mcommit 77f09764b0c205f847033902ef9c7477e4515d5b[m
+Author: Saya <Loamp.3.2.1.gg@gmail.com>
+Date:   Thu Oct 15 14:01:23 2026 +0700
+
+    + More Contect
+
+[33mcommit a77d90e91aacd7f87cafa545025848293d028f3d[m
+Author: Saya <Loamp.3.2.1.gg@gmail.com>
+Date:   Tue Oct 13 13:53:06 2026 +0700
+
+    add More Class
+
+[33mcommit ac89449145daad98fe61a2a6f887b0c31104dd9d[m
+Author: unknown <animeg4869@gmail.com>
+Date:   Tue Oct 13 00:29:22 2026 +0700
+
+    สร้างคลาส deck
+
+[33mcommit 4487cb7a173039be8acba993f1593c579cabe0c8[m
+Author: IT | Paphanthadanai <219800955+D0R07HY@users.noreply.github.com>
+Date:   Mon Oct 12 14:14:29 2026 +0700
+
+    Initial commit
