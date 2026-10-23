@@ -77,7 +77,8 @@ public class GameWindow extends JFrame {
             Icon cardBackV = new ImageIcon(getClass().getResource("/assets/card_back_v.png"));
             Icon cardBackH = new ImageIcon(getClass().getResource("/assets/card_back_h.png"));
 
-            for (int i = 0; i < topCount; i++) topHandPanel.add(new JLabel(cardBackV));
+            for (int i = 0; i < topCount; i++)
+              topHandPanel.add(new JLabel(cardBackV));
             for (int i = 0; i < leftCount; i++) {
                 JLabel lbl = new JLabel(cardBackH);
                 lbl.setAlignmentX(Component.CENTER_ALIGNMENT);
@@ -95,6 +96,12 @@ public class GameWindow extends JFrame {
         topHandPanel.revalidate(); topHandPanel.repaint();
         leftHandPanel.revalidate(); leftHandPanel.repaint();
         rightHandPanel.revalidate(); rightHandPanel.repaint();
+    }
+
+
+    public void updateBoardState(String state) {
+        System.out.println("[UI] อัปเดตกระดานด้วยข้อมูล: " + state);
+        // TODO: อนาคตเราจะมาเขียน switch-case แยกว่าข้อความเป็น SYSTEM หรือ UPDATE_HAND ที่นี่
     }
 
     public BoardPanel getBoardPanel() {

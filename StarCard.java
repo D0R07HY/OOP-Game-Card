@@ -50,7 +50,6 @@ public class StarCard extends Card {
 
     @Override
     public void playEffect(Player owner, Player target, StarCard targetStar, GameState state) {
-        // โยนหน้าที่การจัดวางไปให้ Player เป็นคนจัดการ เพื่อเช็คว่าช่องนั้นว่างหรือไม่
         if (owner.placeStar(this)) {
             System.out.println("[Effect] " + owner.getUsername() + " วางดาว " + this.getName() + " ลงในตำแหน่งวงโคจรที่ " + orbitPosition);
         } else {

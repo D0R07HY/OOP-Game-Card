@@ -30,9 +30,7 @@ public class Player {
         return false;
     }
 
-    public void setHasForceField(boolean hasForceField) {
-        this.hasForceField = hasForceField;
-    }
+    public void setHasForceField(boolean hasForceField) {this.hasForceField = hasForceField;}
 
     public String getUsername() {
         return username;
@@ -50,27 +48,20 @@ public class Player {
         return field;
     }
 
-    public Deck getDeck() {
-        return deck;
-    }
+    public Deck getDeck()                           {return deck;}
 
     public boolean hasForceField() {
         return hasForceField;
     }
 
-    public void addCardToHand(Card c) {
-        hand.add(c);
-    }
+    public void addCardToHand(Card c)               {hand.add(c);}
 
-    public void removeCardFromHand(Card c) {
-        hand.remove(c);
-    }
+    public void removeCardFromHand(Card c)          {hand.remove(c);}
 
     // เมธอดสำหรับวางดาวลงช่องตาม orbitPosition ของดาว
     public boolean placeStar(StarCard star) {
         int pos = star.getOrbitPosition();
-        // เช็คว่าตำแหน่งถูกต้อง และช่องใน Array ยังว่างอยู่ (ไม่มีดาวดวงอื่น)
-        if (pos >= 0 && pos < field.length && field[pos] == null) {
+        if (field[pos] == null) {
             field[pos] = star;
             return true;
         }
@@ -95,11 +86,7 @@ public class Player {
         return true; // ช่องเต็มหมด แปลว่าชนะ
     }
 
-    public boolean isHandOverLimit() {
-        return hand.size() > 7;
-    }
+    public boolean isHandOverLimit()                {return hand.size() > 7;}
 
-    public void discardToLimit(Card c) {
-        hand.remove(c);
-    }
+    public void discardToLimit(Card c)              {hand.remove(c);}
 }
