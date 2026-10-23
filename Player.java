@@ -1,25 +1,37 @@
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 public class Player {
+    public static final int MAX_FIELD = 9;
+    public static final int MAX_HAND = 7;
+    public static final int ACTION_POINTS_PER_TURN = 2;
+
     private String username;
     private int actionPoints;
     private List<Card> hand;
-    private StarCard[] field; // เปลี่ยนเป็น Array เพื่อเก็บดาวตามตำแหน่งวงโคจร
+    private StarCard[] field;
+    private List<Card> dropZone;
     private Deck deck;
     private boolean hasForceField;
+    private Set<StarCard> shieldedStars;
+    private Set<StarCard> cloakedStars;
 
     public Player(String username) {
         this.username = username;
-        this.actionPoints = 2; // ตามกติกาของคุณเป้ กำหนด AP เริ่มต้นที่ 2
-        this.field = new StarCard[9]; // จองพื้นที่ Array ไว้ 9 ช่อง (0-8)
+        this.actionPoints = ACTION_POINTS_PER_TURN;
+        this.field = new StarCard[MAX_FIELD];
         this.hand = new ArrayList<>();
+        this.dropZone = new ArrayList<>();
         this.deck = new Deck();
         this.hasForceField = false;
+        this.shieldedStars = new HashSet<>();
+        this.cloakedStars = new HashSet<>();
     }
 
     public void resetActionPoints() {
-        this.actionPoints = 2;
+        this.actionPoints = ACTION_POINTS_PER_TURN;
     }
 
     public boolean useActionPoint(int cost) {
@@ -30,7 +42,9 @@ public class Player {
         return false;
     }
 
-    public void setHasForceField(boolean hasForceField) {this.hasForceField = hasForceField;}
+    public void setHasForceField(boolean hasForceField) {
+        this.hasForceField = hasForceField;
+    }
 
     public String getUsername() {
         return username;
@@ -48,17 +62,26 @@ public class Player {
         return field;
     }
 
-    public Deck getDeck()                           {return deck;}
+    public List<Card> getDropZone() {
+        return dropZone;
+    }
+
+    public Deck getDeck() {
+        return deck;
+    }
 
     public boolean hasForceField() {
         return hasForceField;
     }
 
-    public void addCardToHand(Card c)               {hand.add(c);}
+    public void addCardToHand(Card c) {
+        hand.add(c);
+    }
 
-    public void removeCardFromHand(Card c)          {hand.remove(c);}
+    public void removeCardFromHand(Card c) {
+        hand.remove(c);
+    }
 
-    // เมธอดสำหรับวางดาวลงช่องตาม orbitPosition ของดาว
     public boolean placeStar(StarCard star) {
         int pos = star.getOrbitPosition();
         if (field[pos] == null) {
@@ -68,25 +91,93 @@ public class Player {
         return false;
     }
 
-    // เมธอดสำหรับลบดาวออกจาก Array
     public void removeStarFromField(StarCard star) {
         int pos = star.getOrbitPosition();
         if (pos >= 0 && pos < field.length && field[pos] == star) {
             field[pos] = null;
         }
+        shieldedStars.remove(star);
+        cloakedStars.remove(star);
     }
 
-    // ตรวจสอบเงื่อนไขชนะ: ต้องมีดาวครบ 9 ดวง (Array ไม่เป็น null ทั้ง 9 ช่อง)
     public boolean checkWinCondition() {
         for (StarCard star : field) {
             if (star == null) {
-                return false; // ถ้ามีช่องไหนว่างแม้แต่ช่องเดียว ถือว่ายังไม่ชนะ
+                return false;
             }
         }
-        return true; // ช่องเต็มหมด แปลว่าชนะ
+        return true;
     }
 
-    public boolean isHandOverLimit()                {return hand.size() > 7;}
+    public boolean isHandOverLimit() {
+        return hand.size() > MAX_HAND;
+    }
 
-    public void discardToLimit(Card c)              {hand.remove(c);}
+    public void discardToLimit(Card c) {
+        if (hand.remove(c)) {
+            addToDropZone(c);
+        }
+    }
+
+    public void addToDropZone(Card c) {
+        if (c != null) {
+            dropZone.add(c);
+        }
+    }
+
+    public Card takeFromDropZone(String name) {
+        if (name == null) {
+            return null;
+        }
+
+        for (int i = 0; i < dropZone.size(); i++) {
+            Card c = dropZone.get(i);
+            if (name.equals(c.getName())) {
+                return dropZone.remove(i);
+            }
+        }
+        return null;
+    }
+
+    public boolean isShielded(StarCard star) {
+        return shieldedStars.contains(star);
+    }
+
+    public void addShield(StarCard star) {
+        if (star != null) {
+            shieldedStars.add(star);
+        }
+    }
+
+    public void removeShield(StarCard star) {
+        shieldedStars.remove(star);
+    }
+
+    public boolean isCloaked(StarCard star) {
+        return cloakedStars.contains(star);
+    }
+
+    public void addCloak(StarCard star) {
+        if (star != null) {
+            cloakedStars.add(star);
+        }
+    }
+
+    public void clearExpiredBuffs() {
+        cloakedStars.clear();
+    }
+
+    public boolean isProtected(StarCard star) {
+        return isShielded(star) || isCloaked(star);
+    }
+
+    public List<StarCard> getTargetableStars() {
+        List<StarCard> result = new ArrayList<>();
+        for (StarCard star : field) {
+            if (star != null && !isCloaked(star)) {
+                result.add(star);
+            }
+        }
+        return result;
+    }
 }
