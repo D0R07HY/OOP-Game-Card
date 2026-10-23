@@ -1,77 +1,19 @@
-public class SpecialCard extends Card
-{
-    
-    public static final String category_attack = "ATTACK";
-    public static final String category_defense = "DEFENSE";
-    public static final String category_support = "SUPPORT";
-    public static final String category_secret = "SECRET";
+public abstract class SpecialCard extends Card {
 
+    public static final String CATEGORY_ATTACK = "ATTACK";
+    public static final String CATEGORY_DEFENSE = "DEFENSE";
+    public static final String CATEGORY_SUPPORT = "SUPPORT";
+    public static final String CATEGORY_SECRET = "SECRET";
 
     private String category;
 
-    public SpecialCard(String id, String name, String category)
-    {
-        super(id , name,"SPECIAL");
+    // แก้ Constructor ให้รับข้อมูลตั้งต้นของการ์ด
+    public SpecialCard(String id, String name, String category, String imagePath) {
+        super(id, name, "SPECIAL", imagePath);
         this.category = category;
     }
 
-    public String getCategory() {return this.category;}
-
-    @Override
-    public void playEffect(Player owner, Player target, GameState state) 
-    {
-        if(owner == null)
-        {
-            return ;
-        }
-
-        switch (name)
-        {
-            case "Meteor Strike":
-
-                break;
-
-            case "Supernova":
-
-                break;
-
-            case "Pulsar":
-
-                break;
-
-            case "Force Field":
-
-                break;
-            
-            case "Nebula Cloak":
-
-                break;
-
-            case "Stellar Regeneration":
-
-                break;
-
-            case "Space Probe":
-                
-                break;
-
-            case "Worm Hole":
-
-                break;
-
-            case "Big Bang":
-
-                break;
-
-            case "Black Hole":
-
-                break;
-
-            default:
-
-                break;
-        }
-
+    public String getCategory() {
+        return this.category;
     }
-
 }

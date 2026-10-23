@@ -114,7 +114,4 @@ public class GameServer implements ServerContext {
         }
     }
 
-    public static void main(String[] args) {
-        new GameServer().start(6767);
-    }
 }
