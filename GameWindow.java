@@ -1,7 +1,3 @@
-<<<<<<< HEAD
-public class GameWindow {
-    
-=======
 import java.awt.*;
 import java.util.List;
 import javax.swing.*;
@@ -104,5 +100,4 @@ public class GameWindow extends JFrame {
     public BoardPanel getBoardPanel() {
         return boardPanel;
     }
->>>>>>> 5cd53019fb1c57c04b7b528978f1c443a3a56ec3
 }
