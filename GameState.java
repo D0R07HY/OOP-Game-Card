@@ -28,22 +28,21 @@ public class GameState {
         currentPlayerIndex = (currentPlayerIndex + 1) % players.size();
         currentPhase = 1;
         Player nextPlayer = getCurrentPlayer();
-        if (nextPlayer != null) {
+        if (nextPlayer != null)
             nextPlayer.resetActionPoints();
-        }
     }
 
 
     public void advancePhase() {
-        if (currentPhase < 3) {
+        if (currentPhase < 3)
             currentPhase++;
-        } else {
+        else
             nextTurn();
-        }
+
     }
 
     public boolean checkWinCondition(Player player) {
-        if (player.getField().size() >= 9) {
+        if (player.getField().length >= 9) {
             this.isGameOver = true;
             this.winner = player;
             return true;

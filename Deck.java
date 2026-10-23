@@ -9,7 +9,8 @@ public class Deck {
     }
 
   public void buildDeck(){
-
+    for(int i = 1; i<=4; i++)
+      cards.push(new StarCard("S03","Earth", 5,ImgPath.Earth,3));
   }
 
   public void shuffle(){
