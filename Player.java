@@ -1,10 +1,11 @@
-import java.util.ArrayList;
+import java.util.*;
 
 public class Player {
     private String username;
     private int actionPoints;
-    private ArrayList<Card> hand;
-    private ArrayList<StarCard> field;
+    private List<Card> hand;
+    private List<StarCard> field;
+    private Deck deck;
     private boolean hasForceField;
 
     public Player(String username)
@@ -13,7 +14,24 @@ public class Player {
         this.actionPoints = 2;
         this.hand = new ArrayList<>();
         this.field = new ArrayList<>();
+        this.deck = new Deck();
         this.hasForceField = false;
+    }
+
+    public void resetActionPoints() {
+        this.actionPoints = 2;
+    }
+
+    public boolean useActionPoint(int cost) {
+        if (this.actionPoints >= cost) {
+            this.actionPoints -= cost;
+            return true;
+        }
+        return false;
+    }
+
+    public void setHasForceField(boolean hasForceField) {
+        this.hasForceField = hasForceField;
     }
 
     public String getUsername()
@@ -26,45 +44,49 @@ public class Player {
         return actionPoints;
     }
 
-    public ArrayList<Card> getHand()
+    public List<Card> getHand()
     {
         return hand;
     }
 
-    public ArrayList<StarCard> getField()
+    public List<StarCard> getField()
     {
         return field;
     }
 
-    public boolean hasForceField()
-    {
+    public Deck getDeck() {
+        return deck;
+    }
+
+    public boolean hasForceField(){
         return hasForceField;
     }
 
-    public void addCardToHand(Card c)
-    {
+    public void addCardToHand(Card c) {
         hand.add(c);
     }
 
-    public void removeCardFromHand(Card c)
-    {
+    public void removeCardFromHand(Card c) {
         hand.remove(c);
     }
 
-    public boolean checkWinCondition()
-    {
-        return field.size() == 9;
+    public void addStarToField(StarCard star) {
+        field.add(star);
     }
 
-    public boolean isHandOverLimit()
-    {
+    public void removeStarFromField(StarCard star) {
+        field.remove(star);
+    }
+
+    public boolean checkWinCondition() {
+        return field.size() >= 9;
+    }
+
+    public boolean isHandOverLimit() {
         return hand.size() > 7;
     }
 
-    public void discardToLimit(Card c)
-    {
+    public void discardToLimit(Card c) {
         hand.remove(c);
-        //ส่งไป DropZone
     }
-
 }
