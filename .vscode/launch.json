@@ -19,16 +19,9 @@
         },
         {
             "type": "java",
-            "name": "GameClient",
+            "name": "EntryWindow",
             "request": "launch",
-            "mainClass": "GameClient",
-            "projectName": "OOP-Game-Card_d13df869"
-        },
-        {
-            "type": "java",
-            "name": "GameServer",
-            "request": "launch",
-            "mainClass": "GameServer",
+            "mainClass": "EntryWindow",
             "projectName": "OOP-Game-Card_d13df869"
         }
     ]

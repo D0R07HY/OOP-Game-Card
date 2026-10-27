@@ -1,25 +1,34 @@
 import java.io.*;
 import java.net.Socket;
+import java.nio.charset.StandardCharsets;
+import java.util.function.Consumer;
 
 public class GameClient {
     private Socket sk;
     private BufferedReader in;
     private PrintWriter out;
     private GameWindow ui;
+    private Consumer<String> onMessage;
 
     public void setUi(GameWindow ui) {
         this.ui = ui;
     }
 
-    public void connect(String ip, int port) {
+    public void setOnMessage(Consumer<String> onMessage) {
+        this.onMessage = onMessage;
+    }
+
+    public boolean connect(String ip, int port, String username) {
         try {
             sk = new Socket(ip, port);
-            in = new BufferedReader(new InputStreamReader(sk.getInputStream()));
-            out = new PrintWriter(new OutputStreamWriter(sk.getOutputStream()), true);
+            in = new BufferedReader(new InputStreamReader(sk.getInputStream(), StandardCharsets.UTF_8));
+            out = new PrintWriter(new OutputStreamWriter(sk.getOutputStream(), StandardCharsets.UTF_8), true);
 
-            out.println("JOIN#Arty");
+            out.println("JOIN#" + username);
+            startListening();
+            return true;
         } catch (IOException e) {
-            e.printStackTrace();
+            return false;
         }
     }
 
@@ -37,14 +46,17 @@ public class GameClient {
                 String line;
                 while ((line = in.readLine()) != null) {
                     System.out.println("[Server] " + line);
-                    if (ui != null) {
+                    if (onMessage != null) {
+                        onMessage.accept(line);
+                    } else if (ui != null) {
                         ui.updateBoardState(line);
                     }
                 }
             } catch (IOException e) {
-                e.printStackTrace();
+                System.out.println("[Client] Connection closed");
             }
         });
+        listener.setDaemon(true);
         listener.start();
     }
 }

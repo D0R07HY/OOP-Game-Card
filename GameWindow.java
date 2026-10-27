@@ -4,16 +4,9 @@ import java.awt.Component;
 import java.awt.Dimension;
 import java.awt.FlowLayout;
 import java.awt.Image;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.*;
 import java.util.function.Consumer;
-import javax.swing.BorderFactory;
-import javax.swing.Box;
-import javax.swing.BoxLayout;
-import javax.swing.ImageIcon;
-import javax.swing.JFrame;
-import javax.swing.JPanel;
-import javax.swing.SwingUtilities;
+import javax.swing.*;
 
 public class GameWindow extends JFrame {
 
@@ -96,7 +89,7 @@ public class GameWindow extends JFrame {
                 cardBtn.setToolTipText(card.getName());
 
                 cardBtn.setOnClick(() -> {
-                    System.out.println("[UI] กดการ์ด: " + card.getName());
+                    System.out.println("[UI] Card clicked: " + card.getName());
 
                     if (myPlayer != null && myPlayer.getHand().contains(card)) {
                         myPlayer.removeCardFromHand(card);
@@ -166,7 +159,7 @@ public class GameWindow extends JFrame {
     }
 
     public void updateBoardState(String state) {
-        System.out.println("[UI] อัปเดตกระดานด้วยข้อมูล: " + state);
+        System.out.println("[UI] Update board with state: " + state);
     }
 
     public BoardPanel getBoardPanel() {

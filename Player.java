@@ -15,6 +15,7 @@ public class Player {
     private List<Card> dropZone;
     private Deck deck;
     private boolean hasForceField;
+    private boolean pulsarUsedThisTurn;
     private Set<StarCard> shieldedStars;
     private Set<StarCard> cloakedStars;
 
@@ -26,12 +27,22 @@ public class Player {
         this.dropZone = new ArrayList<>();
         this.deck = new Deck();
         this.hasForceField = false;
+        this.pulsarUsedThisTurn = false;
         this.shieldedStars = new HashSet<>();
         this.cloakedStars = new HashSet<>();
     }
 
     public void resetActionPoints() {
         this.actionPoints = ACTION_POINTS_PER_TURN;
+        this.pulsarUsedThisTurn = false;
+    }
+
+    public boolean hasUsedPulsarThisTurn() {
+        return pulsarUsedThisTurn;
+    }
+
+    public void markPulsarUsed() {
+        this.pulsarUsedThisTurn = true;
     }
 
     public boolean useActionPoint(int cost) {

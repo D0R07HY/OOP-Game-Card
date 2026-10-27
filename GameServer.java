@@ -8,6 +8,8 @@ import java.util.List;
 public class GameServer implements ServerContext {
 
     private static final int MAX_PLAYERS = 4;
+    public static final int DEFAULT_PORT = 5000;
+    private ServerSocket serverSocket;
     private List<ClientHandler> clients;
     private GameState gameState;
 
@@ -16,15 +18,20 @@ public class GameServer implements ServerContext {
         this.gameState = null;
     }
 
-    public void start(int port) {
-        try (ServerSocket serverSocket = new ServerSocket(port)) {
-            System.out.println("[Server] กำลังรอผู้เล่นที่ port " + port);
+    public void startInBackground(int port) throws IOException {
+        this.serverSocket = new ServerSocket(port);
+        System.out.println("[Server] Waiting for players on port " + port);
 
-            // ใช้ while(true) เพื่อให้เซิร์ฟเวอร์ยังทำงานอยู่เสมอ (เผื่อมีคนหลุดแล้วต้องรับใหม่)
+        Thread serverThread = new Thread(this::acceptLoop);
+        serverThread.setDaemon(true);
+        serverThread.start();
+    }
+
+    private void acceptLoop() {
+        try {
             while (true) {
                 Socket socket = serverSocket.accept();
 
-                // ป้องกันคนเข้าเกิน 4 คน
                 if (clients.size() >= MAX_PLAYERS) {
                     PrintWriter out = new PrintWriter(socket.getOutputStream(), true);
                     out.println("ERR#SERVER_FULL");
@@ -32,13 +39,15 @@ public class GameServer implements ServerContext {
                     continue;
                 }
 
-                System.out.println("[Server] มีการเชื่อมต่อใหม่จาก: " + socket.getRemoteSocketAddress());
+                System.out.println("[Server] New connection from: " + socket.getRemoteSocketAddress());
                 ClientHandler handler = new ClientHandler(socket, this);
-                clients.add(handler);
+                synchronized (this) {
+                    clients.add(handler);
+                }
                 handler.start();
             }
         } catch (IOException e) {
-            e.printStackTrace();
+            System.out.println("[Server] Stopped accepting connections: " + e.getMessage());
         }
     }
 
@@ -56,16 +65,28 @@ public class GameServer implements ServerContext {
         String command = parts[0];
 
         switch (command) {
-            case "JOIN":
-                if (parts.length > 1) {
-                    String username = parts[1];
-                    sender.setPlayer(new Player(username)); // สร้าง Player เมื่อได้รับชื่อแล้ว
-                    System.out.println("[Server] ผู้เล่น " + username + " เข้าห้อง (" + clients.size() + "/" + MAX_PLAYERS + ")");
-                    broadcast("SYSTEM#" + username + "_JOINED");
-
-                    checkAndStartGame(); // ตรวจสอบว่าคนครบหรือยัง
+            case "JOIN": {
+                if (parts.length < 2) {
+                    sender.sendMessage("ERR#INVALID_NAME");
+                    break;
                 }
+
+                String username = parts[1].trim();
+                if (username.isEmpty()) {
+                    sender.sendMessage("ERR#INVALID_NAME");
+                    break;
+                }
+
+                if (hasPlayerName(username)) {
+                    sender.sendMessage("ERR#NAME_TAKEN");
+                    break;
+                }
+
+                sender.setPlayer(new Player(username));
+                System.out.println("[Server] Player " + username + " joined the room (" + countPlayers() + "/" + MAX_PLAYERS + ")");
+                broadcastLobby();
                 break;
+            }
 
             case "PLAY":
             case "ATTACK":
@@ -75,6 +96,24 @@ public class GameServer implements ServerContext {
                     return;
                 }
                 // TODO: ใส่ลอจิกการเล่นการ์ด เช่น วางดาว โจมตี
+                break;
+
+            case "START":
+                if (gameState != null) {
+                    sender.sendMessage("ERR#ALREADY_STARTED");
+                    break;
+                }
+                if (!isHost(sender)) {
+                    sender.sendMessage("ERR#NOT_HOST");
+                    break;
+                }
+                if (countPlayers() < 2) {
+                    sender.sendMessage("ERR#NEED_MORE_PLAYERS");
+                    break;
+                }
+                gameState = new GameState(buildPlayerList());
+                System.out.println("[Server] Game started with " + countPlayers() + " players");
+                broadcast("SYSTEM#GAME_START");
                 break;
 
             case "END_TURN":
@@ -95,23 +134,61 @@ public class GameServer implements ServerContext {
     public synchronized void removeClient(ClientHandler handler) {
         clients.remove(handler);
         if (handler.getPlayer() != null) {
-            System.out.println("[Server] ผู้เล่น " + handler.getPlayer().getUsername() + " ออกจากเกม");
+            System.out.println("[Server] Player " + handler.getPlayer().getUsername() + " left the game");
             broadcast("SYSTEM#" + handler.getPlayer().getUsername() + "_LEFT");
         }
-    }
-
-    private void checkAndStartGame() {
-        if (clients.size() == MAX_PLAYERS) {
-            List<Player> players = new ArrayList<>();
-            for (ClientHandler client : clients) {
-                if (client.getPlayer() == null) return;
-                players.add(client.getPlayer());
-            }
-            // สร้าง GameState เมื่อทุกคนส่งชื่อมาครบแล้ว
-            gameState = new GameState(players);
-            System.out.println("[Server] ผู้เล่นครบ " + MAX_PLAYERS + " คน!");
-            broadcast("SYSTEM#GAME_START");
+        if (gameState == null) {
+            broadcastLobby();
         }
     }
 
+    private void broadcastLobby() {
+        StringBuilder lobby = new StringBuilder("LOBBY");
+        for (ClientHandler client : clients) {
+            Player player = client.getPlayer();
+            if (player != null) {
+                lobby.append("#").append(player.getUsername());
+            }
+        }
+        broadcast(lobby.toString());
+    }
+
+    private boolean hasPlayerName(String username) {
+        for (ClientHandler client : clients) {
+            Player player = client.getPlayer();
+            if (player != null && player.getUsername().equals(username)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private boolean isHost(ClientHandler sender) {
+        for (ClientHandler client : clients) {
+            if (client.getPlayer() != null) {
+                return client == sender;
+            }
+        }
+        return false;
+    }
+
+    private int countPlayers() {
+        int count = 0;
+        for (ClientHandler client : clients) {
+            if (client.getPlayer() != null) {
+                count++;
+            }
+        }
+        return count;
+    }
+
+    private List<Player> buildPlayerList() {
+        List<Player> players = new ArrayList<>();
+        for (ClientHandler client : clients) {
+            if (client.getPlayer() != null) {
+                players.add(client.getPlayer());
+            }
+        }
+        return players;
+    }
 }
