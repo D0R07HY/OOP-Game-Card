@@ -1,17 +1,10 @@
-import java.awt.Color;
-import java.awt.Cursor;
-import java.awt.Graphics;
-import java.awt.Rectangle;
+import java.awt.*;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.HashSet;
+import java.util.*;
 import java.util.List;
-import java.util.Map;
-import java.util.Set;
 import java.util.function.Consumer;
-import javax.swing.JPanel;
+import javax.swing.*;
 
 public class BoardPanel extends JPanel {
 
@@ -73,7 +66,7 @@ public class BoardPanel extends JPanel {
     public void setOnStarClicked(Consumer<StarCard> l) { this.onStarClicked = l; }
     public void setOnPlayerClicked(Consumer<Player> l) { this.onPlayerClicked = l; }
 
-    public void playCardToDropZone(Card card, java.awt.Image cardImg) { repaint(); }
+    public void playCardToDropZone(Card card, Image cardImg) { repaint(); }
     public void setPlayers(List<Player> players) { this.players = (players == null) ? new ArrayList<>() : players; repaint(); }
     public void setDeckCounts(Map<Player, Integer> deckCounts) { this.deckCounts = (deckCounts == null) ? new HashMap<>() : deckCounts; repaint(); }
 
@@ -99,12 +92,11 @@ public class BoardPanel extends JPanel {
             if (p == null) continue;
 
             int px = 20, py = 20;
-            if (i == 0) { px = w / 2 - 225; py = h - 100; }     // ด้านล่าง (ตัวเรา)
+            if (i == 0) { px = w / 2 - 225; py = h - 100; }     // ด้านล่าง
             else if (i == 1) { px = w / 2 - 225; py = 20; }     // ด้านบน
             else if (i == 2) { px = 20; py = h / 2 - 50; }     // ด้านซ้าย
             else if (i == 3) { px = w - 160; py = h / 2 - 50; } // ด้านขวา
 
-            // วาดกล่อง Player Info
             Rectangle pRect = new Rectangle(px, py, 140, 60);
             playerBounds.put(p, pRect);
             g.setColor(selectablePlayers.contains(p) ? Color.YELLOW : Color.WHITE);
@@ -116,7 +108,6 @@ public class BoardPanel extends JPanel {
             g.drawString(p.getUsername() + (!p.isActive() ? " (OUT)" : ""), px + 10, py + 20);
             g.drawString("AP: " + p.getActionPoints() + " | Deck: " + (deck == null ? 0 : deck), px + 10, py + 40);
 
-            // วาดสนามกระดาน 9 ช่องของ Player
             StarCard[] field = p.getField();
             if (field == null) continue;
 
@@ -142,16 +133,32 @@ public class BoardPanel extends JPanel {
                         g.setColor(Color.YELLOW);
                         g.drawRect(sx - 2, sy - 2, sw + 4, sh + 4);
                     }
-                    g.setColor(Color.BLUE);
-                    g.drawString(star.getName().substring(0, Math.min(star.getName().length(), 5)), sx + 2, sy + 20);
-                    g.setColor(Color.RED);
-                    g.drawString("HP:" + star.getHp(), sx + 2, sy + 40);
 
-                    // แสดงสถานะ Shield / Cloak แบบตัวอักษรเรียบง่าย
+                    // โหลดและวาดรูปภาพการ์ดดาวลงบนสนาม
+                    String imgPath = ImgPath.get(star.getName());
+                    Image cardImg = null;
+                    if (imgPath != null) {
+                        cardImg = new ImageIcon(imgPath).getImage();
+                    }
+
+                    if (cardImg != null && cardImg.getWidth(null) > 0) {
+                        g.drawImage(cardImg, sx, sy, sw, sh, this);
+                    } else {
+                        g.setColor(Color.WHITE);
+                        g.fillRect(sx, sy, sw, sh);
+                    }
+
+                    g.setColor(Color.BLACK);
+                    g.drawRect(sx, sy, sw, sh);
+
+                    g.setColor(Color.RED);
+                    g.setFont(new Font("Tahoma", Font.BOLD, 10));
+                    g.drawString("HP:" + star.getHp(), sx + 4, sy + 15);
+
                     String status = (p.isShielded(star) ? "[S]" : "") + (p.isCloaked(star) ? "[C]" : "");
                     if (!status.isEmpty()) {
                         g.setColor(Color.MAGENTA);
-                        g.drawString(status, sx + 2, sy + 52);
+                        g.drawString(status, sx + 4, sy + 30);
                     }
                 }
             }
