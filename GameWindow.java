@@ -221,6 +221,11 @@ public class GameWindow extends JFrame {
             return;
         }
 
+        if (client != null && gameState.getCurrentPlayer() != myPlayer) {
+            setStatus("ยังไม่ถึงเทิร์นของคุณ");
+            return;
+        }
+
         if (!myPlayer.getHand().contains(card)) {
             return;
         }
@@ -413,6 +418,10 @@ public class GameWindow extends JFrame {
                 return;
             }
 
+            if (sendPlayToServer(pendingCard, owner, star, null)) {
+                return;
+            }
+
             if (!myPlayer.useActionPoint(1)) {
                 cancelPending();
                 setStatus("AP ไม่พอสำหรับเล่นการ์ด");
@@ -425,6 +434,10 @@ public class GameWindow extends JFrame {
         } else if (pendingMode == PendingMode.ALLY_STAR) {
             if (owner != myPlayer) {
                 setStatus("เลือกดาวของตนเองเท่านั้น");
+                return;
+            }
+
+            if (sendPlayToServer(pendingCard, myPlayer, star, null)) {
                 return;
             }
 
@@ -477,6 +490,10 @@ public class GameWindow extends JFrame {
         }
 
         if (pendingCard.getName().equals("Supernova")) {
+            if (sendPlayToServer(pendingCard, target, null, null)) {
+                return;
+            }
+
             if (!myPlayer.useActionPoint(1)) {
                 cancelPending();
                 setStatus("AP ไม่พอสำหรับเล่นการ์ด");
@@ -501,6 +518,11 @@ public class GameWindow extends JFrame {
         }
 
         if (!myPlayer.getHand().contains(cost)) {
+            return;
+        }
+
+        if (client != null) {
+            sendPlayToServer(pendingCard, pendingTarget, pendingStar, cost);
             return;
         }
 
@@ -530,6 +552,10 @@ public class GameWindow extends JFrame {
     }
 
     private void placeStarCard(StarCard star) {
+        if (sendPlayToServer(star, null, null, null)) {
+            return;
+        }
+
         int pos = star.getOrbitPosition();
 
         if (myPlayer.hasStarOnField(star.getName())) {
@@ -566,6 +592,10 @@ public class GameWindow extends JFrame {
     }
 
     private void playNoTarget(Card card, String message) {
+        if (sendPlayToServer(card, null, null, null)) {
+            return;
+        }
+
         if (!myPlayer.useActionPoint(1)) {
             setStatus("AP ไม่พอสำหรับเล่นการ์ด");
             return;
@@ -573,6 +603,43 @@ public class GameWindow extends JFrame {
 
         card.playEffect(myPlayer, null, null, gameState);
         finishPlay(card, message);
+    }
+
+    private boolean sendPlayToServer(Card card, Player target, StarCard targetStar, Card cost) {
+        if (client == null) {
+            return false;
+        }
+
+        if (card == null || card.getId() == null) {
+            setStatus("ไม่พบรหัสการ์ดสำหรับส่งไปเซิร์ฟเวอร์");
+            return true;
+        }
+
+        int targetIndex = -1;
+
+        if (target != null && players != null) {
+            targetIndex = players.indexOf(target);
+        }
+
+        int targetSlot = targetStar == null ? -1 : targetStar.getOrbitPosition();
+        String costId = cost == null || cost.getId() == null ? "" : cost.getId();
+        String command = "PLAY";
+
+        if (card instanceof SpecialCard) {
+            String category = ((SpecialCard) card).getCategory();
+
+            if (SpecialCard.CATEGORY_ATTACK.equals(category)) {
+                command = "ATTACK";
+            } else if (SpecialCard.CATEGORY_DEFENSE.equals(category)) {
+                command = "DEFEND";
+            }
+        }
+
+        client.sendAction(command + "#" + card.getId() + "#" + targetIndex + "#"
+                + targetSlot + "#" + costId);
+        cancelPending();
+        setStatus("ส่งคำสั่งเล่นการ์ดไปยังเซิร์ฟเวอร์แล้ว...");
+        return true;
     }
 
     private void finishPlay(Card card, String message) {
@@ -713,6 +780,11 @@ public class GameWindow extends JFrame {
         cancelPending();
 
         if (client != null) {
+            if (gameState != null && gameState.getCurrentPlayer() != myPlayer) {
+                setStatus("ยังไม่ถึงเทิร์นของคุณ");
+                return;
+            }
+
             client.sendAction("END_TURN");
             setStatus("ส่งคำสั่งจบเทิร์นแล้ว กำลังรอเซิร์ฟเวอร์...");
             return;
@@ -778,11 +850,47 @@ public class GameWindow extends JFrame {
             return;
         }
 
+        if (state.equals("HAND") || state.startsWith("HAND#")) {
+            applyHandSnapshot(state);
+            return;
+        }
+
         if (!state.startsWith("UPDATE_BOARD#")) {
             return;
         }
 
         applyBoardSnapshot(state);
+    }
+
+    private void applyHandSnapshot(String message) {
+        if (myPlayer == null) {
+            return;
+        }
+
+        List<Card> newHand = new ArrayList<>();
+        String body = message.startsWith("HAND#")
+                ? message.substring("HAND#".length()) : "";
+
+        if (!body.isEmpty()) {
+            for (String record : body.split("#", -1)) {
+                String[] parts = record.split(",", -1);
+
+                if (parts.length < 5) {
+                    continue;
+                }
+
+                Card card = CardFactory.create(parts[0], parts[1], parts[2],
+                        parseInt(parts[3], 0), parseInt(parts[4], -1));
+
+                if (card != null) {
+                    newHand.add(card);
+                }
+            }
+        }
+
+        myPlayer.getHand().clear();
+        myPlayer.getHand().addAll(newHand);
+        updateMyHand(myPlayer.getHand());
     }
 
     private void applyBoardSnapshot(String snapshot) {
@@ -794,6 +902,7 @@ public class GameWindow extends JFrame {
         boolean gameOver = false;
         List<String> playerRecords = new ArrayList<>();
         List<String> fieldRecords = new ArrayList<>();
+        List<String> dropRecords = new ArrayList<>();
 
         for (int i = 1; i < tokens.length; i++) {
             String token = tokens[i];
@@ -812,6 +921,8 @@ public class GameWindow extends JFrame {
                 playerRecords.add(token.substring("P:".length()));
             } else if (token.startsWith("F:")) {
                 fieldRecords.add(token.substring("F:".length()));
+            } else if (token.startsWith("D:")) {
+                dropRecords.add(token.substring("D:".length()));
             }
         }
 
@@ -827,9 +938,15 @@ public class GameWindow extends JFrame {
 
         cancelPending();
 
-        for (Player player : targetPlayers) {
+        int[] oldDropCounts = new int[targetPlayers.size()];
+
+        for (int i = 0; i < targetPlayers.size(); i++) {
+            Player player = targetPlayers.get(i);
+
             if (player != null) {
+                oldDropCounts[i] = player.getDropZone().size();
                 player.clearField();
+                player.getDropZone().clear();
             }
         }
 
@@ -898,6 +1015,48 @@ public class GameWindow extends JFrame {
 
             if ("1".equals(parts[6])) {
                 player.addCloak(star);
+            }
+        }
+
+        for (String record : dropRecords) {
+            String[] parts = record.split(",", -1);
+
+            if (parts.length < 6) {
+                continue;
+            }
+
+            int playerIndex = parseInt(parts[0], -1);
+
+            if (playerIndex < 0 || playerIndex >= targetPlayers.size()) {
+                continue;
+            }
+
+            Player player = targetPlayers.get(playerIndex);
+
+            if (player == null) {
+                continue;
+            }
+
+            Card card = CardFactory.create(parts[1], parts[2], parts[3],
+                    parseInt(parts[4], 0), parseInt(parts[5], -1));
+
+            if (card != null) {
+                player.getDropZone().add(card);
+            }
+        }
+
+        for (int i = 0; i < targetPlayers.size(); i++) {
+            Player player = targetPlayers.get(i);
+
+            if (player == null) {
+                continue;
+            }
+
+            int newDropCount = player.getDropZone().size();
+
+            if (newDropCount > oldDropCounts[i] && newDropCount > 0) {
+                Card lastDrop = player.getDropZone().get(newDropCount - 1);
+                boardPanel.playCardToDropZone(lastDrop, loadCardImage(lastDrop));
             }
         }
 

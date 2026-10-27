@@ -198,6 +198,21 @@ public class GameState {
                         .append(player.isShielded(star) ? "1" : "0").append(",")
                         .append(player.isCloaked(star) ? "1" : "0");
             }
+
+            for (Card card : player.getDropZone()) {
+                sb.append("#D:").append(i).append(",")
+                        .append(safeToken(card.getId())).append(",")
+                        .append(safeToken(card.getName())).append(",")
+                        .append(safeToken(card.getType())).append(",");
+
+                if (card instanceof StarCard) {
+                    StarCard star = (StarCard) card;
+                    sb.append(star.getMaxHp()).append(",")
+                            .append(star.getOrbitPosition());
+                } else {
+                    sb.append("0,-1");
+                }
+            }
         }
 
         return sb.toString();
