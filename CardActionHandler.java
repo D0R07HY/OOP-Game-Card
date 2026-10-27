@@ -4,7 +4,7 @@ import java.util.Set;
 
 public class CardActionHandler {
 
-    // ตรวจสอบเงื่อนไขการเล่นการ์ดพิเศษเบื้องต้น
+    
     public static String validateSpecialCard(SpecialCard special, Player myPlayer, GameState gameState, int otherHandCount) {
         String name = special.getName();
 
@@ -24,10 +24,10 @@ public class CardActionHandler {
                 return "Worm Hole: ต้องมีการ์ดอีก 1 ใบในมือเพื่อใช้แลก";
             }
         }
-        return null; // ผ่านเงื่อนไข ไม่มีข้อผิดพลาด
+        return null; 
     }
 
-    // กรองและหาเป้าหมายที่เป็นดาวของศัตรู
+    
     public static Set<StarCard> getTargetableEnemyStars(List<Player> players, Player myPlayer) {
         Set<StarCard> result = new HashSet<>();
         if (players == null) return result;
@@ -43,7 +43,7 @@ public class CardActionHandler {
         return result;
     }
 
-    // กรองและหาเป้าหมายที่เป็นดาวของตัวเอง
+    
     public static Set<StarCard> getTargetableOwnStars(Player myPlayer) {
         Set<StarCard> result = new HashSet<>();
         if (myPlayer == null) return result;
@@ -56,7 +56,7 @@ public class CardActionHandler {
         return result;
     }
 
-    // สร้างข้อความ Protocol สำหรับส่งคำสั่งไปยัง Server
+    
     public static String buildServerCommand(Card card, Player target, StarCard targetStar, Card cost, List<Player> players) {
         if (card == null || card.getId() == null) {
             return null;

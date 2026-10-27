@@ -1,0 +1,4166 @@
+================================================================
+FILE: BoardPanel.java
+================================================================
+import java.awt.*;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
+import java.util.*;
+import java.util.List;
+import java.util.function.Consumer;
+import javax.swing.*;
+
+public class BoardPanel extends JPanel {
+
+    private List<Player> players = new ArrayList<>();
+    private Map<Player, Integer> deckCounts = new HashMap<>();
+    private final Map<StarCard, Rectangle> starBounds = new HashMap<>();
+    private final Map<Player, Rectangle> playerBounds = new HashMap<>();
+    private final Set<StarCard> selectableStars = new HashSet<>();
+    private final Set<Player> selectablePlayers = new HashSet<>();
+    private Consumer<StarCard> onStarClicked;
+    private Consumer<Player> onPlayerClicked;
+    private Player localPlayer;
+
+    public BoardPanel() {
+        setBackground(Color.LIGHT_GRAY);
+        installMouseHandling();
+    }
+
+    public void setLocalPlayer(Player player) {
+        this.localPlayer = player;
+        repaint();
+    }
+
+    private void installMouseHandling() {
+        MouseAdapter mouse = new MouseAdapter() {
+            @Override
+            public void mouseClicked(MouseEvent e) {
+                for (Map.Entry<StarCard, Rectangle> entry : starBounds.entrySet()) {
+                    if (entry.getValue().contains(e.getPoint()) && selectableStars.contains(entry.getKey())) {
+                        if (onStarClicked != null) onStarClicked.accept(entry.getKey());
+                        return;
+                    }
+                }
+                for (Map.Entry<Player, Rectangle> entry : playerBounds.entrySet()) {
+                    if (entry.getValue().contains(e.getPoint()) && selectablePlayers.contains(entry.getKey())) {
+                        if (onPlayerClicked != null) onPlayerClicked.accept(entry.getKey());
+                        return;
+                    }
+                }
+            }
+
+            @Override
+            public void mouseMoved(MouseEvent e) {
+                boolean target = starBounds.entrySet().stream().anyMatch(entry -> entry.getValue().contains(e.getPoint()) && selectableStars.contains(entry.getKey()))
+                        || playerBounds.entrySet().stream().anyMatch(entry -> entry.getValue().contains(e.getPoint()) && selectablePlayers.contains(entry.getKey()));
+                setCursor(Cursor.getPredefinedCursor(target ? Cursor.HAND_CURSOR : Cursor.DEFAULT_CURSOR));
+            }
+        };
+        addMouseListener(mouse);
+        addMouseMotionListener(mouse);
+    }
+
+    public void setSelectable(Set<StarCard> stars, Set<Player> players) {
+        selectableStars.clear();
+        selectablePlayers.clear();
+        if (stars != null) selectableStars.addAll(stars);
+        if (players != null) selectablePlayers.addAll(players);
+        repaint();
+    }
+
+    public void clearSelectable() {
+        setSelectable(null, null);
+    }
+
+    public void setOnStarClicked(Consumer<StarCard> l) { this.onStarClicked = l; }
+    public void setOnPlayerClicked(Consumer<Player> l) { this.onPlayerClicked = l; }
+
+    public void playCardToDropZone(Card card, Image cardImg) { repaint(); }
+    public void setPlayers(List<Player> players) { this.players = (players == null) ? new ArrayList<>() : players; repaint(); }
+    public void setDeckCounts(Map<Player, Integer> deckCounts) { this.deckCounts = (deckCounts == null) ? new HashMap<>() : deckCounts; repaint(); }
+
+    @Override
+    protected void paintComponent(Graphics g) {
+        super.paintComponent(g);
+        starBounds.clear();
+        playerBounds.clear();
+
+        int w = getWidth();
+        int h = getHeight();
+
+
+        if (players == null || players.isEmpty()) return;
+
+        
+        List<Player> orderedPlayers = new ArrayList<>();
+        if (localPlayer != null && players.contains(localPlayer)) {
+            orderedPlayers.add(localPlayer);
+            for (Player p : players) {
+                if (p != localPlayer) {
+                    orderedPlayers.add(p);
+                }
+            }
+        } else {
+            orderedPlayers.addAll(players);
+        }
+
+        int totalPlayers = Math.min(orderedPlayers.size(), 4);
+
+        
+        for (int i = 0; i < totalPlayers; i++) {
+            Player p = orderedPlayers.get(i);
+            if (p == null) continue;
+
+            int px = 20, py = 20;
+            if (i == 0) { px = w / 2 - 225; py = h - 100; }     
+            else if (i == 1) { px = w / 2 - 225; py = 20; }     
+            else if (i == 2) { px = 20; py = h / 2 - 50; }     
+            else if (i == 3) { px = w - 160; py = h / 2 - 50; } 
+
+            
+            Rectangle pRect = new Rectangle(px, py, 140, 60);
+            playerBounds.put(p, pRect);
+            g.setColor(selectablePlayers.contains(p) ? Color.YELLOW : Color.WHITE);
+            g.fillRect(pRect.x, pRect.y, pRect.width, pRect.height);
+            g.setColor(Color.BLACK);
+            g.drawRect(pRect.x, pRect.y, pRect.width, pRect.height);
+
+            Integer deck = deckCounts.get(p);
+            g.drawString(p.getUsername() + (!p.isActive() ? " (OUT)" : ""), px + 10, py + 20);
+            g.drawString("AP: " + p.getActionPoints() + " | Deck: " + (deck == null ? 0 : deck), px + 10, py + 40);
+
+            
+            StarCard[] field = p.getField();
+            if (field == null) continue;
+
+            int startX = (i == 0 || i == 1) ? px + 150 : px;
+            int startY = (i == 0 || i == 1) ? py : py + 70;
+
+            for (int slot = 0; slot < field.length; slot++) {
+                int sx = (i == 0 || i == 1) ? startX + (slot * 55) : startX + (slot % 3 * 45);
+                int sy = (i == 0 || i == 1) ? startY : startY + (slot / 3 * 60);
+                int sw = (i == 0 || i == 1) ? 50 : 40;
+                int sh = (i == 0 || i == 1) ? 60 : 55;
+
+                Rectangle sRect = new Rectangle(sx, sy, sw, sh);
+                g.setColor(Color.WHITE);
+                g.fillRect(sx, sy, sw, sh);
+                g.setColor(Color.BLACK);
+                g.drawRect(sx, sy, sw, sh);
+
+                StarCard star = field[slot];
+                if (star != null) {
+                    starBounds.put(star, sRect);
+                    if (selectableStars.contains(star)) {
+                        g.setColor(Color.YELLOW);
+                        g.drawRect(sx - 2, sy - 2, sw + 4, sh + 4);
+                    }
+
+                    
+                    String imgPath = ImgPath.get(star.getName());
+                    Image cardImg = null;
+                    if (imgPath != null) {
+                        cardImg = new ImageIcon(imgPath).getImage();
+                    }
+
+                    if (cardImg != null && cardImg.getWidth(null) > 0) {
+                        g.drawImage(cardImg, sx, sy, sw, sh, this);
+                    } else {
+                        g.setColor(Color.WHITE);
+                        g.fillRect(sx, sy, sw, sh);
+                    }
+
+                    g.setColor(Color.BLACK);
+                    g.drawRect(sx, sy, sw, sh);
+
+                    
+                    g.setColor(Color.RED);
+                    g.setFont(new Font("Tahoma", Font.BOLD, 10));
+                    g.drawString("HP:" + star.getHp(), sx + 4, sy + 15);
+
+                    String status = (p.isShielded(star) ? "[S]" : "") + (p.isCloaked(star) ? "[C]" : "");
+                    if (!status.isEmpty()) {
+                        g.setColor(Color.MAGENTA);
+                        g.drawString(status, sx + 4, sy + 30);
+                    }
+                }
+            }
+        }
+    }
+}
+================================================================
+FILE: Card.java
+================================================================
+public abstract class Card {
+
+    protected String id;
+    protected String name;
+    protected String type;
+    protected String imagePath; 
+
+    protected Card(String id, String name, String type, String imagePath) {
+        this.id = id;
+        this.name = name;
+        this.type = type;
+        this.imagePath = imagePath;
+    }
+
+    public String getId()   { return id; }
+    public String getName() { return name; }
+    public String getType() { return type; }
+    public String getImagePath() { return imagePath; } 
+
+    public abstract void playEffect(Player owner, Player target, StarCard targetStar, GameState state);
+}
+================================================================
+FILE: CardActionHandler.java
+================================================================
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+
+public class CardActionHandler {
+
+    
+    public static String validateSpecialCard(SpecialCard special, Player myPlayer, GameState gameState, int otherHandCount) {
+        String name = special.getName();
+
+        if (name.equals("Pulsar")) {
+            if (myPlayer.isPulsarUsedThisTurn()) {
+                return "Pulsar ใช้ได้ 1 ครั้งต่อเทิร์นเท่านั้น";
+            }
+            if (otherHandCount == 0) {
+                return "Pulsar: ต้องมีการ์ดอีก 1 ใบในมือเพื่อทิ้งเป็นค่าการใช้";
+            }
+        } else if (name.equals("Black Hole")) {
+            if (gameState.isBlackHoleUsed()) {
+                return "Black Hole ถูกใช้ไปแล้วในเกมนี้";
+            }
+        } else if (name.equals("Worm Hole")) {
+            if (otherHandCount == 0) {
+                return "Worm Hole: ต้องมีการ์ดอีก 1 ใบในมือเพื่อใช้แลก";
+            }
+        }
+        return null; 
+    }
+
+    
+    public static Set<StarCard> getTargetableEnemyStars(List<Player> players, Player myPlayer) {
+        Set<StarCard> result = new HashSet<>();
+        if (players == null) return result;
+
+        for (Player p : players) {
+            if (p == null || p == myPlayer || !p.isActive()) continue;
+            for (StarCard star : p.getField()) {
+                if (star != null && !p.isCloaked(star)) {
+                    result.add(star);
+                }
+            }
+        }
+        return result;
+    }
+
+    
+    public static Set<StarCard> getTargetableOwnStars(Player myPlayer) {
+        Set<StarCard> result = new HashSet<>();
+        if (myPlayer == null) return result;
+
+        for (StarCard star : myPlayer.getField()) {
+            if (star != null) {
+                result.add(star);
+            }
+        }
+        return result;
+    }
+
+    
+    public static String buildServerCommand(Card card, Player target, StarCard targetStar, Card cost, List<Player> players) {
+        if (card == null || card.getId() == null) {
+            return null;
+        }
+
+        int targetIndex = -1;
+        if (target != null && players != null) {
+            targetIndex = players.indexOf(target);
+        }
+
+        int targetSlot = targetStar == null ? -1 : targetStar.getOrbitPosition();
+        String costId = (cost == null || cost.getId() == null) ? "" : cost.getId();
+        String command = "PLAY";
+
+        if (card instanceof SpecialCard) {
+            String category = ((SpecialCard) card).getCategory();
+            if (SpecialCard.CATEGORY_ATTACK.equals(category)) {
+                command = "ATTACK";
+            } else if (SpecialCard.CATEGORY_DEFENSE.equals(category)) {
+                command = "DEFEND";
+            }
+        }
+
+        return command + "#" + card.getId() + "#" + targetIndex + "#" + targetSlot + "#" + costId;
+    }
+}
+================================================================
+FILE: CardButton.java
+================================================================
+import java.awt.Color;
+import java.awt.Cursor;
+import java.awt.Font;
+import java.awt.FontMetrics;
+import java.awt.Graphics;
+import java.awt.Image;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
+import javax.swing.JComponent;
+
+public class CardButton extends JComponent {
+
+    private final Card card;
+    private final Image image;
+    private final boolean faceDown;
+
+    private boolean hovered;
+    private boolean selected;
+    private Runnable onClick;
+
+    public CardButton(Card card, Image image, boolean faceDown) {
+        this.card = card;
+        this.image = image;
+        this.faceDown = faceDown;
+        this.hovered = false;
+        this.selected = false;
+
+        setOpaque(false);
+        setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+
+        addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseEntered(MouseEvent e) {
+                hovered = true;
+                repaint();
+            }
+
+            @Override
+            public void mouseExited(MouseEvent e) {
+                hovered = false;
+                repaint();
+            }
+
+            @Override
+            public void mouseClicked(MouseEvent e) {
+                if (onClick != null) {
+                    onClick.run();
+                }
+            }
+        });
+    }
+
+    public CardButton(Card card, Image image) {
+        this(card, image, false);
+    }
+
+    public static CardButton back() {
+        return new CardButton(null, null, true);
+    }
+
+    public Card getCard() {
+        return card;
+    }
+
+    public Image getImage() {
+        return image;
+    }
+
+    public void setOnClick(Runnable onClick) {
+        this.onClick = onClick;
+    }
+
+    public void setSelected(boolean selected) {
+        this.selected = selected;
+        repaint();
+    }
+
+    @Override
+    protected void paintComponent(Graphics g) {
+        Graphics g2 = g.create();
+
+        int w = getWidth();
+        int h = getHeight();
+        int pad = 3;
+        int cw = w - pad * 2;
+        int ch = h - pad * 2;
+
+        if (faceDown) {
+            drawCardBack(g2, pad, pad, cw, ch);
+        } else if (image != null) {
+            g2.drawImage(image, pad, pad, cw, ch, this);
+        } else {
+            drawPlaceholder(g2, pad, pad, cw, ch);
+        }
+
+        if (hovered || selected) {
+            g2.setColor(selected ? new Color(255, 170, 40) : new Color(255, 90, 90));
+            g2.drawRect(pad, pad, cw - 1, ch - 1);
+        }
+
+        g2.dispose();
+    }
+
+    private void drawCardBack(Graphics g2, int x, int y, int w, int h) {
+        g2.setColor(new Color(255, 253, 250));
+        g2.fillRect(x, y, w, h);
+
+        g2.setColor(new Color(205, 60, 60));
+        g2.drawRect(x + 2, y + 2, w - 5, h - 5);
+
+        if (w >= 50) {
+            String text = "HORIZON";
+            int size = Math.max(9, Math.min(w / 7, h / 8));
+            g2.setFont(new Font("Comic Sans MS", Font.BOLD, size));
+            FontMetrics fm = g2.getFontMetrics();
+
+            int tx = x + (w - fm.stringWidth(text)) / 2;
+            int ty = y + (h - fm.getHeight()) / 2 + fm.getAscent();
+
+            g2.drawString(text, tx, ty);
+        } else {
+            String text = "HORIZON";
+            int size = Math.max(7, Math.min(w / 4, h / 9));
+            g2.setFont(new Font("Comic Sans MS", Font.BOLD, size));
+            FontMetrics fm = g2.getFontMetrics();
+
+            int step = Math.max(8, h / 8);
+            int total = step * text.length();
+            int startY = y + (h - total) / 2 + fm.getAscent();
+
+            for (int i = 0; i < text.length(); i++) {
+                String ch = String.valueOf(text.charAt(i));
+                int tx = x + (w - fm.stringWidth(ch)) / 2;
+                g2.drawString(ch, tx, startY + i * step);
+            }
+        }
+    }
+
+    private void drawPlaceholder(Graphics g2, int x, int y, int w, int h) {
+        g2.setColor(new Color(255, 253, 250));
+        g2.fillRect(x, y, w, h);
+
+        g2.setColor(new Color(205, 60, 60));
+        g2.drawRect(x + 1, y + 1, w - 3, h - 3);
+
+        String text = card == null ? "CARD" : card.getName();
+        int size = Math.max(9, Math.min(w / 8, 13));
+        g2.setFont(new Font("Comic Sans MS", Font.BOLD, size));
+        FontMetrics fm = g2.getFontMetrics();
+
+        int tx = x + (w - fm.stringWidth(text)) / 2;
+        int ty = y + h / 2 + fm.getAscent() / 2;
+
+        g2.drawString(text, tx, ty);
+    }
+}
+================================================================
+FILE: CardFactory.java
+================================================================
+public final class CardFactory {
+
+    private CardFactory() {
+    }
+
+    public static Card create(String id, String name, String type, int hp, int orbit) {
+        if (name == null) {
+            return null;
+        }
+
+        if ("STAR".equals(type)) {
+            return new StarCard(id, name, Math.max(1, hp), ImgPath.get(name), orbit);
+        }
+
+        if (!"SPECIAL".equals(type)) {
+            return null;
+        }
+
+        String imagePath = ImgPath.get(name);
+
+        if (name.equals("Meteor Strike")) {
+            return new MeteorStrike(id, imagePath);
+        }
+        if (name.equals("Supernova") || name.equals("Super Nova")) {
+            return new Supernova(id, imagePath);
+        }
+        if (name.equals("Pulsar")) {
+            return new Pulsar(id, imagePath);
+        }
+        if (name.equals("Force Field")) {
+            return new ForceField(id, imagePath);
+        }
+        if (name.equals("Nebula Cloak")) {
+            return new NebulaCloak(id, imagePath);
+        }
+        if (name.equals("Stellar Regeneration")) {
+            return new StellarRegeneration(id, imagePath);
+        }
+        if (name.equals("Space Probe")) {
+            return new SpaceProbe(id, imagePath);
+        }
+        if (name.equals("Big Bang")) {
+            return new BigBang(id, imagePath);
+        }
+        if (name.equals("Black Hole")) {
+            return new BlackHole(id, imagePath);
+        }
+        if (name.equals("Worm Hole")) {
+            return new WormHole(id, imagePath);
+        }
+
+        return null;
+    }
+}
+================================================================
+FILE: ClientHandler.java
+================================================================
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.io.OutputStreamWriter;
+import java.io.PrintWriter;
+import java.net.Socket;
+import java.nio.charset.StandardCharsets;
+
+public class ClientHandler extends Thread {
+
+    private final Socket socket;
+    private final ServerContext context;
+    private final BufferedReader in;
+    private final PrintWriter out;
+    private volatile boolean running;
+    private boolean removed;
+    private Player player;
+
+    
+    public ClientHandler(Socket socket, ServerContext context) throws IOException {
+        if (socket == null || context == null) {
+            throw new IllegalArgumentException("socket and context are required");
+        }
+
+        this.socket = socket;
+        this.context = context;
+        this.in = new BufferedReader(new InputStreamReader(socket.getInputStream(), StandardCharsets.UTF_8));
+        this.out = new PrintWriter(new OutputStreamWriter(socket.getOutputStream(), StandardCharsets.UTF_8), true);
+        this.running = true;
+        this.removed = false;
+        this.player = null;
+    }
+
+    @Override
+    public void run() {
+        try {
+            String message;
+            while (running && (message = in.readLine()) != null) {
+                message = message.trim();
+                if (message.isEmpty()) {
+                    continue;
+                }
+
+                try {
+                    
+                    context.processClientAction(message, this);
+                } catch (RuntimeException e) {
+                    sendMessage("ERROR#SERVER_ERROR#Unexpected server error");
+                }
+            }
+        } catch (IOException e) {
+        } finally {
+            running = false;
+            closeSocket();
+            notifyRemoved();
+        }
+    }
+
+    public synchronized void sendMessage(String message) {
+        if (message != null && !socket.isClosed()) {
+            out.println(message);
+        }
+    }
+
+    public void disconnect() {
+        running = false;
+        closeSocket();
+    }
+
+    public boolean isConnected() {
+        return running && !socket.isClosed();
+    }
+
+    public Player getPlayer() {
+        return player;
+    }
+
+    public void setPlayer(Player player) {
+        this.player = player;
+    }
+
+    public Socket getSocket() {
+        return socket;
+    }
+
+    private void notifyRemoved() {
+        synchronized (this) {
+            if (removed) {
+                return;
+            }
+            removed = true;
+        }
+        context.removeClient(this);
+    }
+
+    private void closeSocket() {
+        try {
+            socket.close();
+        } catch (IOException ignored) {}
+    }
+}
+================================================================
+FILE: Deck.java
+================================================================
+import java.util.*;
+
+public class Deck {
+  private Stack<Card> cards;
+
+  public Deck() {
+        this.cards = new Stack<>();
+        buildDeck();
+        shuffle();
+    }
+
+  public void buildDeck(){
+    addStars("SUN",     "The Sun", 3, ImgPath.The_Sun, 2, 8);
+    addStars("MERCURY", "Mercury", 3, ImgPath.Mercury, 3, 1);
+    addStars("VENUS",   "Venus",   2, ImgPath.Venus,   3, 2);
+    addStars("EARTH",   "Earth",   2, ImgPath.Earth,   4, 3);
+    addStars("MARS",    "Mars",    3, ImgPath.Mars,    4, 4);
+    addStars("JUPITER", "Jupiter", 1, ImgPath.Jupiter, 2, 5);
+    addStars("SATURN",  "Saturn",  1, ImgPath.Saturn,  2, 6);
+    addStars("URANUS",  "Uranus",  1, ImgPath.Uranus,  2, 7);
+    addStars("NEPTUNE", "Neptune", 2, ImgPath.Neptune, 2, 0);
+
+
+    for (int i = 1; i <= 4; i++)
+      cards.push(new MeteorStrike("SP-METEOR-" + i, ImgPath.Meteor_Strike));
+    for (int i = 1; i <= 4; i++)
+      cards.push(new Supernova("SP-SUPERNOVA-" + i, ImgPath.Super_nova));
+    for (int i = 1; i <= 3; i++)
+      cards.push(new Pulsar("SP-PULSAR-" + i, ImgPath.pulsar));
+    for (int i = 1; i <= 3; i++)
+      cards.push(new ForceField("SP-FORCE-" + i, ImgPath.forc_field));
+    for (int i = 1; i <= 3; i++)
+      cards.push(new NebulaCloak("SP-CLOAK-" + i, ImgPath.nebular_cloak));
+    for (int i = 1; i <= 3; i++)
+      cards.push(new StellarRegeneration("SP-REGEN-" + i, ImgPath.stallar_regenneration));
+    for (int i = 1; i <= 4; i++)
+      cards.push(new SpaceProbe("SP-PROBE-" + i, ImgPath.space_prode));
+    for (int i = 1; i <= 1; i++)
+      cards.push(new WormHole("SP-WORM-" + i, ImgPath.worm_hole));
+    for (int i = 1; i <= 1; i++)
+      cards.push(new BigBang("SP-BIGBANG-" + i, ImgPath.Bigbang));
+
+    cards.push(new BlackHole("SP-BLACKHOLE-1", ImgPath.Black_hole));
+  }
+
+  
+  private void addStars(String code, String name, int hp, String image, int count, int orbit) {
+    for (int i = 1; i <= count; i++) {
+      cards.push(new StarCard(code + "-" + i, name, hp, image, orbit));
+    }
+  }
+
+  public void shuffle(){
+    if (this.cards != null && !this.cards.isEmpty())
+      Collections.shuffle(this.cards);
+  }
+
+  public boolean isEmpty() {
+    return cards.isEmpty();
+  }
+
+  public int size() {
+    return cards.size();
+  }
+
+  public Card drawCard() {
+    if (cards.isEmpty()) {
+      return null;
+    }
+    return cards.pop();
+  }
+
+  public Card searchAndRemove(String name) {
+    if (name == null) {
+      return null;
+    }
+    for (int i = 0; i < cards.size(); i++) {
+      if (name.equals(cards.get(i).getName())) {
+        return cards.remove(i);
+      }
+    }
+    return null;
+  }
+}
+================================================================
+FILE: EntryWindow.java
+================================================================
+import java.awt.*;
+import java.io.IOException;
+import java.net.InetAddress;
+import java.net.UnknownHostException;
+import javax.swing.*;
+import javax.swing.event.DocumentEvent;
+import javax.swing.event.DocumentListener;
+
+public class EntryWindow extends JFrame {
+
+    private final JTextField nameField;
+    private final JButton joinButton;
+    private final JButton createButton;
+
+    public EntryWindow() {
+        setTitle("Horizon CardOnline");
+        setSize(380, 250);
+        setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        setLayout(new BorderLayout(10, 10));
+
+        JLabel title = new JLabel("Horizon CardOnline", JLabel.CENTER);
+        title.setBorder(BorderFactory.createEmptyBorder(15, 0, 5, 0));
+
+        nameField = new JTextField();
+
+        JPanel form = new JPanel(new GridLayout(2, 1, 5, 5));
+        form.setBorder(BorderFactory.createEmptyBorder(10, 40, 5, 40));
+        form.add(new JLabel("Player name:"));
+        form.add(nameField);
+
+        joinButton = new JButton("Join");
+        createButton = new JButton("Create Room");
+        joinButton.setEnabled(false);
+        createButton.setEnabled(false);
+
+        JPanel buttons = new JPanel(new FlowLayout());
+        buttons.add(joinButton);
+        buttons.add(createButton);
+
+        add(title, BorderLayout.NORTH);
+        add(form, BorderLayout.CENTER);
+        add(buttons, BorderLayout.SOUTH);
+
+        nameField.getDocument().addDocumentListener(new DocumentListener() {
+            @Override
+            public void insertUpdate(DocumentEvent e) {
+                updateButtons();
+            }
+
+            @Override
+            public void removeUpdate(DocumentEvent e) {
+                updateButtons();
+            }
+
+            @Override
+            public void changedUpdate(DocumentEvent e) {
+                updateButtons();
+            }
+        });
+
+        joinButton.addActionListener(e -> joinRoom());
+        createButton.addActionListener(e -> createRoom());
+        setVisible(true);
+        setLocationRelativeTo(null);
+    }
+
+    private void updateButtons() {
+        String name = nameField.getText().trim();
+        boolean valid = !name.isEmpty() && !name.contains("#");
+        joinButton.setEnabled(valid);
+        createButton.setEnabled(valid);
+    }
+
+    private void createRoom() {
+        String username = nameField.getText().trim();
+        if (username.isEmpty()) {
+            return;
+        }
+
+        String portText = JOptionPane.showInputDialog(
+                this,
+                "Port to host on:",
+                String.valueOf(GameServer.DEFAULT_PORT));
+
+        if (portText == null) {
+            return;
+        }
+
+        int port = parsePort(portText);
+        if (port < 0) {
+            JOptionPane.showMessageDialog(this, "Invalid port (use 1024-65535)");
+            return;
+        }
+
+        GameServer server = new GameServer();
+        try {
+            server.startInBackground(port);
+        } catch (IOException e) {
+            JOptionPane.showMessageDialog(this, "Cannot create room: port " + port + " is already in use");
+            return;
+        }
+
+        openWaitingRoom(true, "127.0.0.1", port, username, getLocalIp());
+    }
+
+    private void joinRoom() {
+        String username = nameField.getText().trim();
+        if (username.isEmpty()) {
+            return;
+        }
+
+        JTextField ipField = new JTextField("127.0.0.1");
+        JTextField portField = new JTextField(String.valueOf(GameServer.DEFAULT_PORT));
+
+        JPanel panel = new JPanel(new GridLayout(2, 2, 5, 5));
+        panel.add(new JLabel("Room IP:"));
+        panel.add(ipField);
+        panel.add(new JLabel("Port:"));
+        panel.add(portField);
+
+        int result = JOptionPane.showConfirmDialog(this, panel, "Join Room", JOptionPane.OK_CANCEL_OPTION);
+        if (result != JOptionPane.OK_OPTION) {
+            return;
+        }
+
+        String ip = ipField.getText().trim();
+        int port = parsePort(portField.getText().trim());
+
+        if (ip.isEmpty()) {
+            JOptionPane.showMessageDialog(this, "Please enter the room IP");
+            return;
+        }
+        if (port < 0) {
+            JOptionPane.showMessageDialog(this, "Invalid port (use 1024-65535)");
+            return;
+        }
+
+        openWaitingRoom(false, ip, port, username, ip);
+    }
+
+    private void openWaitingRoom(boolean isHost, String connectIp, int port, String username, String displayIp) {
+        GameClient client = new GameClient();
+        WaitingRoomWindow room = new WaitingRoomWindow(client, isHost, displayIp, port, username);
+        client.setOnMessage(room::handleMessage);
+
+        if (!client.connect(connectIp, port, username)) {
+            room.dispose();
+            JOptionPane.showMessageDialog(this, "Cannot connect to room: " + connectIp + ":" + port);
+            return;
+        }
+
+        room.setVisible(true);
+        dispose();
+    }
+
+    private int parsePort(String text) {
+        try {
+            int port = Integer.parseInt(text.trim());
+            if (port >= 1024 && port <= 65535) {
+                return port;
+            }
+        } catch (NumberFormatException e) {
+            return -1;
+        }
+        return -1;
+    }
+
+    private String getLocalIp() {
+        try {
+            String ip = InetAddress.getLocalHost().getHostAddress();
+            return ip.contains(":") ? "127.0.0.1" : ip;
+        } catch (UnknownHostException e) {
+            return "127.0.0.1";
+        }
+    }
+
+    public static void main(String[] args) {
+        new EntryWindow();
+    }
+}
+================================================================
+FILE: GameClient.java
+================================================================
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.io.OutputStreamWriter;
+import java.io.PrintWriter;
+import java.net.Socket;
+import java.nio.charset.StandardCharsets;
+import java.util.function.Consumer;
+import javax.swing.SwingUtilities;
+
+public class GameClient {
+    private Socket sk;
+    private BufferedReader in;
+    private PrintWriter out;
+    private volatile GameWindow ui;
+    private volatile Consumer<String> onMessage;
+
+    public void setUi(GameWindow ui) {
+        this.ui = ui;
+    }
+
+    public void setOnMessage(Consumer<String> onMessage) {
+        this.onMessage = onMessage;
+    }
+
+    public boolean connect(String ip, int port, String username) {
+        try {
+            sk = new Socket(ip, port);
+            in = new BufferedReader(new InputStreamReader(sk.getInputStream(), StandardCharsets.UTF_8));
+            out = new PrintWriter(new OutputStreamWriter(sk.getOutputStream(), StandardCharsets.UTF_8), true);
+
+            out.println("JOIN#" + username);
+            startListening();
+            return true;
+        } catch (IOException e) {
+            return false;
+        }
+    }
+
+    public void sendAction(String actionMsg) {
+        if (out != null) {
+            out.println(actionMsg);
+        }
+    }
+
+    public void startListening() {
+        if (in == null) {
+            return;
+        }
+
+        Thread listener = new Thread(() -> {
+            try {
+                String line;
+                while ((line = in.readLine()) != null) {
+                    String message = line;
+
+                    SwingUtilities.invokeLater(() -> dispatch(message));
+                }
+            } catch (IOException e) {
+            }
+        });
+        listener.setDaemon(true);
+        listener.start();
+    }
+
+    private void dispatch(String message) {
+        Consumer<String> listener = onMessage;
+
+        if (listener != null) {
+            listener.accept(message);
+        } else if (ui != null) {
+            ui.updateBoardState(message);
+        }
+    }
+
+    public void close() {
+        try {
+            if (sk != null) {
+                sk.close();
+            }
+        } catch (IOException ignored) {
+        }
+    }
+}
+================================================================
+FILE: GameServer.java
+================================================================
+import java.io.IOException;
+import java.io.PrintWriter;
+import java.net.ServerSocket;
+import java.net.Socket;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.concurrent.CopyOnWriteArrayList;
+
+public class GameServer implements ServerContext {
+
+    private static final int MAX_PLAYERS = 4;
+    private static final int OPENING_HAND = 5;
+    public static final int DEFAULT_PORT = 5000;
+    private ServerSocket serverSocket;
+    private List<ClientHandler> clients;
+    private GameState gameState;
+
+    public GameServer() {
+        this.clients = new CopyOnWriteArrayList<>();
+        this.gameState = null;
+    }
+
+    public void startInBackground(int port) throws IOException {
+        this.serverSocket = new ServerSocket(port);
+
+        Thread serverThread = new Thread(this::acceptLoop);
+        serverThread.setDaemon(true);
+        serverThread.start();
+    }
+
+    private void acceptLoop() {
+        try {
+            while (true) {
+                Socket socket = serverSocket.accept();
+
+                if (clients.size() >= MAX_PLAYERS) {
+                    PrintWriter out = new PrintWriter(socket.getOutputStream(), true);
+                    out.println("ERR#SERVER_FULL");
+                    socket.close();
+                    continue;
+                }
+
+                ClientHandler handler = new ClientHandler(socket, this);
+                synchronized (this) {
+                    clients.add(handler);
+                }
+                handler.start();
+            }
+        } catch (IOException e) {
+        }
+    }
+
+    public synchronized void broadcast(String message) {
+        for (ClientHandler client : clients) {
+            client.sendMessage(message);
+        }
+    }
+
+    @Override
+    public synchronized void processClientAction(String action, ClientHandler sender) {
+        if (action == null || action.isEmpty()) {
+            return;
+        }
+
+        String[] parts = action.split("#", -1);
+        String command = parts[0];
+
+        switch (command) {
+            case "JOIN": {
+                if (gameState != null) {
+                    sender.sendMessage("ERR#ALREADY_STARTED");
+                    break;
+                }
+
+                if (parts.length < 2) {
+                    sender.sendMessage("ERR#INVALID_NAME");
+                    break;
+                }
+
+                String username = parts[1].trim();
+                if (username.isEmpty()) {
+                    sender.sendMessage("ERR#INVALID_NAME");
+                    break;
+                }
+
+                if (hasPlayerName(username)) {
+                    sender.sendMessage("ERR#NAME_TAKEN");
+                    break;
+                }
+
+                sender.setPlayer(new Player(username));
+                broadcastLobby();
+                break;
+            }
+
+            case "PLAY":
+            case "ATTACK":
+            case "DEFEND":
+                handleCardAction(sender, parts);
+                break;
+
+            case "START": {
+                if (gameState != null) {
+                    sender.sendMessage("ERR#ALREADY_STARTED");
+                    break;
+                }
+                if (!isHost(sender)) {
+                    sender.sendMessage("ERR#NOT_HOST");
+                    break;
+                }
+                if (countPlayers() < 2) {
+                    sender.sendMessage("ERR#NEED_MORE_PLAYERS");
+                    break;
+                }
+
+                List<Player> players = buildPlayerList();
+                dealOpeningHands(players);
+                gameState = new GameState(players);
+                startTurn(gameState.getCurrentPlayer());
+                gameState.addChangeListener(this::broadcastState);
+
+                StringBuilder start = new StringBuilder("SYSTEM#GAME_START");
+
+                for (Player player : players) {
+                    start.append("#").append(player.getUsername());
+                }
+
+                broadcast(start.toString());
+                broadcastState();
+                break;
+            }
+
+            case "END_TURN":
+                if (gameState == null) {
+                    sender.sendMessage("ERR#GAME_NOT_READY");
+                    break;
+                }
+                if (gameState.isGameOver()) {
+                    sender.sendMessage("ERR#GAME_OVER");
+                    break;
+                }
+                if (sender.getPlayer() != gameState.getCurrentPlayer()) {
+                    sender.sendMessage("ERR#NOT_YOUR_TURN");
+                    break;
+                }
+
+                Player current = gameState.getCurrentPlayer();
+
+                gameState.setCurrentPhase(3);
+
+                if (gameState.checkWinCondition(current)) {
+                    break;
+                }
+
+                enforceHandLimit(current);
+
+                gameState.nextTurn();
+                startTurn(gameState.getCurrentPlayer());
+                broadcastState();
+                break;
+
+            default:
+                sender.sendMessage("ERR#UNKNOWN_COMMAND");
+                break;
+        }
+    }
+
+    private void handleCardAction(ClientHandler sender, String[] parts) {
+        if (gameState == null) {
+            sendError(sender, "GAME_NOT_READY");
+            return;
+        }
+
+        if (gameState.isGameOver()) {
+            sendError(sender, "GAME_OVER");
+            return;
+        }
+
+        Player owner = sender.getPlayer();
+
+        if (owner == null) {
+            sendError(sender, "INVALID_PLAYER");
+            return;
+        }
+
+        if (!owner.isActive()) {
+            sendError(sender, "PLAYER_INACTIVE");
+            return;
+        }
+
+        if (owner != gameState.getCurrentPlayer()) {
+            sendError(sender, "NOT_YOUR_TURN");
+            return;
+        }
+
+        if (parts.length < 2 || parts[1].trim().isEmpty()) {
+            sendError(sender, "INVALID_ACTION");
+            return;
+        }
+
+        Card card = findCardInHand(owner, parts[1].trim());
+
+        if (card == null) {
+            sendError(sender, "CARD_NOT_IN_HAND");
+            return;
+        }
+
+        int targetIndex = parseInt(parts.length > 2 ? parts[2] : "", -1);
+        int targetSlot = parseInt(parts.length > 3 ? parts[3] : "", -1);
+        String costId = parts.length > 4 ? parts[4].trim() : "";
+
+        Player target = null;
+
+        if (targetIndex != -1) {
+            if (targetIndex < 0 || targetIndex >= gameState.getPlayers().size()) {
+                sendError(sender, "INVALID_TARGET");
+                return;
+            }
+
+            target = gameState.getPlayers().get(targetIndex);
+
+            if (target == null) {
+                sendError(sender, "INVALID_TARGET");
+                return;
+            }
+        }
+
+        StarCard targetStar = null;
+
+        if (targetSlot != -1) {
+            if (target == null || targetSlot < 0 || targetSlot >= target.getField().length) {
+                sendError(sender, "INVALID_TARGET");
+                return;
+            }
+
+            targetStar = target.getField()[targetSlot];
+
+            if (targetStar == null) {
+                sendError(sender, "INVALID_TARGET");
+                return;
+            }
+        }
+
+        Card cost = null;
+
+        if (!costId.isEmpty()) {
+            cost = findCardInHand(owner, costId);
+
+            if (cost == null || cost == card) {
+                sendError(sender, "INVALID_COST");
+                return;
+            }
+        }
+
+        if (card instanceof StarCard) {
+            playStar(sender, owner, (StarCard) card);
+        } else if (card instanceof SpecialCard) {
+            playSpecial(sender, owner, (SpecialCard) card, target, targetStar, cost);
+        } else {
+            sendError(sender, "UNSUPPORTED_CARD");
+        }
+    }
+
+    private void playStar(ClientHandler sender, Player owner, StarCard star) {
+        if (owner.hasStarOnField(star.getName())) {
+            sendError(sender, "DUPLICATE_STAR");
+            return;
+        }
+
+        if (owner.getActionPoints() < 1) {
+            sendError(sender, "NOT_ENOUGH_AP");
+            return;
+        }
+
+        int pos = star.getOrbitPosition();
+
+        if (pos < 0 || pos >= owner.getField().length || owner.getField()[pos] != null) {
+            pos = owner.findFirstEmptySlot();
+        }
+
+        if (pos < 0) {
+            sendError(sender, "FIELD_FULL");
+            return;
+        }
+
+        star.setOrbitPosition(pos);
+
+        if (!owner.placeStar(star)) {
+            sendError(sender, "CANNOT_PLAY_CARD");
+            return;
+        }
+
+        owner.removeCardFromHand(star);
+        owner.useActionPoint(1);
+        gameState.checkWinCondition(owner);
+        broadcastState();
+    }
+
+    private void playSpecial(ClientHandler sender, Player owner, SpecialCard card,
+                             Player target, StarCard targetStar, Card cost) {
+        String name = card.getName();
+        String targetType = card.getTargetType();
+
+        if (target != null && !target.isActive()) {
+            sendError(sender, "INVALID_TARGET");
+            return;
+        }
+
+        
+        if (name.equals("Pulsar")) {
+            if (owner.isPulsarUsedThisTurn()) {
+                sendError(sender, "PULSAR_ALREADY_USED");
+                return;
+            }
+            if (cost == null) {
+                sendError(sender, "INVALID_COST");
+                return;
+            }
+        } else if (name.equals("Black Hole")) {
+            if (gameState.isBlackHoleUsed()) {
+                sendError(sender, "BLACK_HOLE_ALREADY_USED");
+                return;
+            }
+        } else if (name.equals("Worm Hole")) {
+            if (cost == null || target == null || target.getHand().isEmpty()) {
+                sendError(sender, "INVALID_TARGET");
+                return;
+            }
+        }
+
+        
+        if (SpecialCard.TARGET_ENEMY_STAR.equals(targetType)) {
+            if (target == null || target == owner || targetStar == null || target.isCloaked(targetStar)) {
+                sendError(sender, "INVALID_TARGET");
+                return;
+            }
+        } else if (SpecialCard.TARGET_ALLY_STAR.equals(targetType)) {
+            if (target != owner || targetStar == null) {
+                sendError(sender, "INVALID_TARGET");
+                return;
+            }
+        } else if (SpecialCard.TARGET_ENEMY_PLAYER.equals(targetType)) {
+            if (target == null || target == owner) {
+                sendError(sender, "INVALID_TARGET");
+                return;
+            }
+        }
+
+        if (!spendActionPoint(sender, owner)) {
+            return;
+        }
+
+        if (name.equals("Pulsar")) {
+            ((Pulsar) card).playEffect(owner, target, targetStar, cost, gameState);
+        } else if (name.equals("Worm Hole")) {
+            ((WormHole) card).playEffectWithCard(owner, target, cost, gameState);
+        } else {
+            card.playEffect(owner, target, targetStar, gameState);
+        }
+
+        finishSpecial(owner, card);
+    }
+
+    private boolean spendActionPoint(ClientHandler sender, Player owner) {
+        if (owner.getActionPoints() < 1) {
+            sendError(sender, "NOT_ENOUGH_AP");
+            return false;
+        }
+
+        return owner.useActionPoint(1);
+    }
+
+    private void finishSpecial(Player owner, SpecialCard card) {
+        owner.removeCardFromHand(card);
+
+        if (!card.getName().equals("Black Hole")) {
+            owner.addToDropZone(card);
+        }
+
+        gameState.checkWinCondition(owner);
+        broadcastState();
+    }
+
+    private Card findCardInHand(Player player, String cardId) {
+        for (Card card : player.getHand()) {
+            if (card.getId() != null && card.getId().equals(cardId)) {
+                return card;
+            }
+        }
+
+        return null;
+    }
+
+    private void sendError(ClientHandler sender, String code) {
+        sender.sendMessage("ERR#" + code);
+    }
+
+    private static int parseInt(String value, int fallback) {
+        try {
+            return Integer.parseInt(value.trim());
+        } catch (NumberFormatException e) {
+            return fallback;
+        }
+    }
+
+    private void dealOpeningHands(List<Player> players) {
+        for (int round = 0; round < OPENING_HAND; round++) {
+            for (Player player : players) {
+                Card card = player.getDeck().drawCard();
+
+                if (card != null) {
+                    player.addCardToHand(card);
+                }
+            }
+        }
+    }
+
+    private boolean startTurn(Player player) {
+        if (player == null || gameState == null) {
+            return false;
+        }
+
+        gameState.setCurrentPhase(1);
+        player.clearExpiredBuffs();
+
+        Card card = player.getDeck().drawCard();
+
+        if (card != null) {
+            player.addCardToHand(card);
+            gameState.setCurrentPhase(2);
+            return true;
+        }
+
+        player.setActive(false);
+
+        if (gameState.getActivePlayerCount() <= 1) {
+            gameState.setWinner(gameState.getFirstActivePlayer());
+            gameState.setGameOver(true);
+            return false;
+        }
+
+        gameState.nextTurn();
+        return startTurn(gameState.getCurrentPlayer());
+    }
+
+    private void enforceHandLimit(Player player) {
+        if (player == null) {
+            return;
+        }
+
+        int discarded = 0;
+
+        while (player.getHand().size() > Player.MAX_HAND) {
+            Card card = player.getHand().get(player.getHand().size() - 1);
+            player.removeCardFromHand(card);
+            player.addToDropZone(card);
+            discarded++;
+        }
+
+        if (discarded > 0) {
+            sendToPlayer(player, "SYSTEM#มือเกิน 7 ใบ: ทิ้ง " + discarded
+                    + " ใบลง Drop Zone");
+        }
+    }
+
+    private void sendToPlayer(Player player, String message) {
+        for (ClientHandler client : clients) {
+            if (client.getPlayer() == player) {
+                client.sendMessage(message);
+                return;
+            }
+        }
+    }
+
+    @Override
+    public synchronized void removeClient(ClientHandler handler) {
+        clients.remove(handler);
+
+        Player player = handler.getPlayer();
+
+        if (player != null) {
+            broadcast("SYSTEM#" + player.getUsername() + "_LEFT");
+
+            if (gameState != null && gameState.getPlayers().contains(player)) {
+                player.setActive(false);
+
+                if (gameState.getActivePlayerCount() <= 1) {
+                    gameState.setWinner(gameState.getFirstActivePlayer());
+                    gameState.setGameOver(true);
+                } else if (gameState.getCurrentPlayer() == player) {
+                    gameState.nextTurn();
+                    startTurn(gameState.getCurrentPlayer());
+                }
+
+                broadcastState();
+            }
+        }
+
+        if (gameState == null) {
+            broadcastLobby();
+        }
+    }
+
+    private void broadcastState() {
+        if (gameState == null) {
+            return;
+        }
+
+        String snapshot = gameState.toProtocolString();
+
+        for (ClientHandler client : clients) {
+            Player player = client.getPlayer();
+
+            if (player == null) {
+                continue;
+            }
+
+            client.sendMessage(snapshot);
+            client.sendMessage(toHandMessage(player));
+        }
+    }
+
+    private String toHandMessage(Player player) {
+        StringBuilder sb = new StringBuilder("HAND");
+
+        for (Card card : player.getHand()) {
+            sb.append("#").append(safeToken(card.getId())).append(",")
+                    .append(safeToken(card.getName())).append(",")
+                    .append(safeToken(card.getType())).append(",");
+
+            if (card instanceof StarCard) {
+                StarCard star = (StarCard) card;
+                sb.append(star.getMaxHp()).append(",")
+                        .append(star.getOrbitPosition());
+            } else {
+                sb.append("0,-1");
+            }
+        }
+
+        return sb.toString();
+    }
+
+    private static String safeToken(String value) {
+        if (value == null) {
+            return "";
+        }
+
+        return value.replace(',', ' ').replace('#', ' ').replace(':', ' ');
+    }
+
+    private void broadcastLobby() {
+        StringBuilder lobby = new StringBuilder("LOBBY");
+
+        for (ClientHandler client : clients) {
+            Player player = client.getPlayer();
+
+            if (player != null) {
+                lobby.append("#").append(player.getUsername());
+            }
+        }
+
+        broadcast(lobby.toString());
+    }
+
+    private boolean hasPlayerName(String username) {
+        for (ClientHandler client : clients) {
+            Player player = client.getPlayer();
+
+            if (player != null && player.getUsername().equals(username)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private boolean isHost(ClientHandler sender) {
+        for (ClientHandler client : clients) {
+            if (client.getPlayer() != null) {
+                return client == sender;
+            }
+        }
+        return false;
+    }
+
+    private int countPlayers() {
+        int count = 0;
+
+        for (ClientHandler client : clients) {
+            if (client.getPlayer() != null) {
+                count++;
+            }
+        }
+
+        return count;
+    }
+
+    private List<Player> buildPlayerList() {
+        List<Player> players = new ArrayList<>();
+
+        for (ClientHandler client : clients) {
+            if (client.getPlayer() != null) {
+                players.add(client.getPlayer());
+            }
+        }
+
+        return players;
+    }
+}
+================================================================
+FILE: GameState.java
+================================================================
+import java.util.ArrayList;
+import java.util.List;
+
+public class GameState {
+    private List<Player> players;
+    private int currentPlayerIndex;
+    private int currentPhase;
+    private boolean isGameOver;
+    private Player winner;
+    private boolean blackHoleUsed;
+    private final List<Runnable> changeListeners;
+
+    public GameState(List<Player> players) {
+        this.players = players;
+        this.currentPlayerIndex = 0;
+        this.currentPhase = 1;
+        this.isGameOver = false;
+        this.winner = null;
+        this.blackHoleUsed = false;
+        this.changeListeners = new ArrayList<>();
+        bindPlayerListeners();
+    }
+
+    private void bindPlayerListeners() {
+        if (players == null) {
+            return;
+        }
+
+        for (Player player : players) {
+            if (player != null) {
+                player.setChangeListener(this::fireStateChanged);
+            }
+        }
+    }
+
+    public void addChangeListener(Runnable listener) {
+        if (listener != null && !changeListeners.contains(listener)) {
+            changeListeners.add(listener);
+        }
+    }
+
+    public void removeChangeListener(Runnable listener) {
+        changeListeners.remove(listener);
+    }
+
+    private void fireStateChanged() {
+        for (Runnable listener : new ArrayList<>(changeListeners)) {
+            listener.run();
+        }
+    }
+
+    public Player getCurrentPlayer() {
+        if (players == null || players.isEmpty()) return null;
+        return players.get(currentPlayerIndex);
+    }
+
+    public void nextTurn() {
+        if (isGameOver || players == null || players.isEmpty()) return;
+
+        
+        for (int step = 0; step < players.size(); step++) {
+            currentPlayerIndex = (currentPlayerIndex + 1) % players.size();
+            Player nextPlayer = getCurrentPlayer();
+
+            if (nextPlayer != null && nextPlayer.isActive()) {
+                currentPhase = 1;
+                nextPlayer.resetActionPoints();
+                fireStateChanged();
+                return;
+            }
+        }
+    }
+
+    public int getActivePlayerCount() {
+        if (players == null) {
+            return 0;
+        }
+
+        int count = 0;
+
+        for (Player player : players) {
+            if (player != null && player.isActive()) {
+                count++;
+            }
+        }
+
+        return count;
+    }
+
+    public Player getFirstActivePlayer() {
+        if (players == null) {
+            return null;
+        }
+
+        for (Player player : players) {
+            if (player != null && player.isActive()) {
+                return player;
+            }
+        }
+
+        return null;
+    }
+
+
+    public void advancePhase() {
+        if (currentPhase < 3)
+            currentPhase++;
+        else
+            nextTurn();
+
+    }
+
+    public boolean checkWinCondition(Player player) {
+        if (player != null && player.checkWinCondition()) {
+            this.isGameOver = true;
+            this.winner = player;
+            fireStateChanged();
+            return true;
+        }
+        return false;
+    }
+
+    public void eliminatePlayer(Player player) {
+        if (player == null || !players.remove(player)) {
+            return;
+        }
+
+        if (players.size() == 1) {
+            this.isGameOver = true;
+            this.winner = players.get(0);
+        } else if (currentPlayerIndex >= players.size()) {
+            currentPlayerIndex = 0;
+        }
+
+        fireStateChanged();
+    }
+
+    public List<Player> getPlayers() {
+        return players;
+    }
+
+    public int getCurrentPlayerIndex() {
+        return currentPlayerIndex;
+    }
+
+    public int getCurrentPhase() {
+        return currentPhase;
+    }
+
+    public boolean isGameOver() {
+        return isGameOver;
+    }
+
+    public Player getWinner() {
+        return winner;
+    }
+
+    public boolean isBlackHoleUsed() {
+        return blackHoleUsed;
+    }
+
+    public void setBlackHoleUsed(boolean blackHoleUsed) {
+        if (this.blackHoleUsed != blackHoleUsed) {
+            this.blackHoleUsed = blackHoleUsed;
+            fireStateChanged();
+        }
+    }
+
+    public void setCurrentPlayerIndex(int currentPlayerIndex) {
+        if (players == null || players.isEmpty()) {
+            this.currentPlayerIndex = 0;
+        } else {
+            this.currentPlayerIndex = Math.max(0,
+                    Math.min(currentPlayerIndex, players.size() - 1));
+        }
+    }
+
+    public void setCurrentPhase(int currentPhase) {
+        this.currentPhase = Math.max(1, Math.min(3, currentPhase));
+    }
+
+    public void setGameOver(boolean isGameOver) {
+        this.isGameOver = isGameOver;
+    }
+
+    public void setWinner(Player winner) {
+        this.winner = winner;
+
+        if (winner != null) {
+            this.isGameOver = true;
+        }
+    }
+
+    public String toProtocolString() {
+        StringBuilder sb = new StringBuilder("UPDATE_BOARD");
+        sb.append("#TURN:").append(currentPlayerIndex);
+        sb.append("#PHASE:").append(currentPhase);
+        sb.append("#BH:").append(blackHoleUsed ? "1" : "0");
+        sb.append("#OVER:").append(isGameOver ? "1" : "0");
+        sb.append("#WINNER:").append(players == null ? -1 : players.indexOf(winner));
+
+        if (players == null) {
+            return sb.toString();
+        }
+
+        for (int i = 0; i < players.size(); i++) {
+            Player player = players.get(i);
+
+            if (player == null) {
+                continue;
+            }
+
+            sb.append("#P:").append(i).append(",")
+                    .append(safeToken(player.getUsername())).append(",")
+                    .append(player.getActionPoints()).append(",")
+                    .append(player.getHand().size()).append(",")
+                    .append(player.getDeck().size()).append(",")
+                    .append(player.getDropZone().size()).append(",")
+                    .append(player.isActive() ? "1" : "0");
+
+            StarCard[] field = player.getField();
+
+            for (int slot = 0; slot < field.length; slot++) {
+                StarCard star = field[slot];
+
+                if (star == null) {
+                    continue;
+                }
+
+                sb.append("#F:").append(i).append(",")
+                        .append(slot).append(",")
+                        .append(safeToken(star.getName())).append(",")
+                        .append(star.getHp()).append(",")
+                        .append(star.getMaxHp()).append(",")
+                        .append(player.isShielded(star) ? "1" : "0").append(",")
+                        .append(player.isCloaked(star) ? "1" : "0");
+            }
+
+            for (Card card : player.getDropZone()) {
+                sb.append("#D:").append(i).append(",")
+                        .append(safeToken(card.getId())).append(",")
+                        .append(safeToken(card.getName())).append(",")
+                        .append(safeToken(card.getType())).append(",");
+
+                if (card instanceof StarCard) {
+                    StarCard star = (StarCard) card;
+                    sb.append(star.getMaxHp()).append(",")
+                            .append(star.getOrbitPosition());
+                } else {
+                    sb.append("0,-1");
+                }
+            }
+        }
+
+        return sb.toString();
+    }
+
+    private static String safeToken(String value) {
+        if (value == null) {
+            return "";
+        }
+
+        return value.replace(',', ' ').replace('#', ' ').replace(':', ' ');
+    }
+}
+================================================================
+FILE: GameWindow.java
+================================================================
+import java.awt.*;
+import java.awt.event.ActionEvent;
+import java.util.*;
+import java.util.List;
+import java.util.function.Consumer;
+import javax.swing.*;
+
+public class GameWindow extends JFrame {
+
+    private BoardPanel boardPanel;
+    private JPanel myHandPanel;
+    private JPanel topHandPanel;
+    private JPanel leftHandPanel;
+    private JPanel rightHandPanel;
+    private StatusBarPanel statusBarPanel;
+
+    private Player myPlayer;
+    private List<Player> players;
+    private final Map<Player, Integer> deckCounts = new HashMap<>();
+    private final Map<Player, Integer> handCounts = new HashMap<>();
+    private boolean gameOverAnnounced;
+    private GameState gameState;
+    private GameClient client;
+    private Consumer<Card> onCardSelected;
+
+    
+    private final TargetingManager targetingManager = new TargetingManager();
+
+    public GameWindow() {
+        setTitle("Horizon CardOnline");
+
+        Rectangle screen = GraphicsEnvironment.getLocalGraphicsEnvironment()
+                .getMaximumWindowBounds();
+        int windowWidth = Math.min(1560, Math.max(1280, screen.width - 60));
+        int windowHeight = Math.min(920, Math.max(720, screen.height - 70));
+
+        setSize(windowWidth, windowHeight);
+        setMinimumSize(new Dimension(Math.min(1280, windowWidth), 700));
+        setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        setLayout(new BorderLayout());
+        getContentPane().setBackground(new Color(252, 246, 240));
+
+        initComponents();
+        setLocationRelativeTo(null);
+    }
+
+    private void initComponents() {
+        boardPanel = new BoardPanel();
+        boardPanel.setOnStarClicked(this::handleStarClick);
+        boardPanel.setOnPlayerClicked(this::handlePlayerClick);
+        add(boardPanel, BorderLayout.CENTER);
+
+        myHandPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 8, 8));
+        myHandPanel.setOpaque(false);
+        myHandPanel.setPreferredSize(new Dimension(0, 150));
+        myHandPanel.setBorder(BorderFactory.createMatteBorder(2, 0, 0, 0, new Color(200, 70, 70)));
+
+        
+        statusBarPanel = new StatusBarPanel();
+        statusBarPanel.addEndTurnListener(this::onEndTurn);
+
+        JPanel southPanel = new JPanel(new BorderLayout());
+        southPanel.setOpaque(false);
+        southPanel.add(statusBarPanel, BorderLayout.NORTH);
+        southPanel.add(myHandPanel, BorderLayout.CENTER);
+        southPanel.setPreferredSize(new Dimension(0, 188));
+        add(southPanel, BorderLayout.SOUTH);
+
+        topHandPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 8, 8));
+        topHandPanel.setOpaque(false);
+        topHandPanel.setPreferredSize(new Dimension(0, 104));
+        topHandPanel.setBorder(BorderFactory.createMatteBorder(0, 0, 2, 0, new Color(200, 70, 70)));
+        add(topHandPanel, BorderLayout.NORTH);
+
+        leftHandPanel = createSidePanel();
+        leftHandPanel.setPreferredSize(new Dimension(202, 0));
+        leftHandPanel.setBorder(BorderFactory.createMatteBorder(0, 0, 0, 2, new Color(200, 70, 70)));
+        add(leftHandPanel, BorderLayout.WEST);
+
+        rightHandPanel = createSidePanel();
+        rightHandPanel.setPreferredSize(new Dimension(202, 0));
+        rightHandPanel.setBorder(BorderFactory.createMatteBorder(0, 2, 0, 0, new Color(200, 70, 70)));
+        add(rightHandPanel, BorderLayout.EAST);
+    }
+
+    private JPanel createSidePanel() {
+        return new SideHandPanel();
+    }
+
+        public void setMyPlayer(Player player) {
+            this.myPlayer = player;
+            if (boardPanel != null) {
+                boardPanel.setLocalPlayer(player);
+            }
+
+            updateDeckLabel();
+            updateMyHand(player == null ? new ArrayList<>() : player.getHand());
+    }
+
+    private void updateDeckLabel() {
+        if (statusBarPanel == null) return;
+        Integer remaining = myPlayer == null ? null : deckCounts.get(myPlayer);
+        statusBarPanel.setDeckText(remaining == null ? "เด็คคงเหลือ: -" : "เด็คคงเหลือ: " + remaining + " ใบ");
+    }
+
+    public Player getMyPlayer() {
+        return myPlayer;
+    }
+
+    public GameState getGameState() {
+        return gameState;
+    }
+
+    public String getStatusText() {
+        return statusBarPanel != null ? statusBarPanel.getStatusText() : "";
+    }
+
+    public void setPlayers(List<Player> players) {
+        this.players = players;
+        boardPanel.setPlayers(players);
+
+        if (gameState == null && players != null) {
+            gameState = new GameState(players);
+        }
+    }
+
+    public void setOnCardSelected(Consumer<Card> onCardSelected) {
+        this.onCardSelected = onCardSelected;
+    }
+
+    public void setGameClient(GameClient client) {
+        this.client = client;
+        updateDeckLabel();
+    }
+
+    public void updateMyHand(List<Card> hand) {
+        myHandPanel.removeAll();
+
+        int count = hand == null ? 0 : hand.size();
+        int cardW = 92;
+        int cardH = 129;
+
+        if (count > 0) {
+            int available = myHandPanel.getWidth();
+            if (available < 300) {
+                available = Math.max(620, getWidth() - 240);
+            }
+            int usable = Math.max(0, available - 8 * (count + 1));
+            cardW = Math.max(52, Math.min(92, usable / count));
+            cardH = Math.min(129, Math.max(72, (int) Math.round(cardW * 1.4)));
+        }
+
+        if (hand != null) {
+            for (Card card : hand) {
+                Image img = loadCardImage(card);
+                CardButton cardBtn = new CardButton(card, img);
+                cardBtn.setPreferredSize(new Dimension(cardW, cardH));
+                cardBtn.setToolTipText(card.getName());
+                cardBtn.setSelected(card == targetingManager.getPendingCard());
+                cardBtn.setOnClick(() -> handleHandCardClick(card));
+                myHandPanel.add(cardBtn);
+            }
+        }
+
+        myHandPanel.revalidate();
+        myHandPanel.repaint();
+    }
+
+    private void handleHandCardClick(Card card) {
+        if (targetingManager.getPendingMode() == TargetingManager.PendingMode.COST_CARD) {
+            resolveCostCard(card);
+            return;
+        }
+
+        if (targetingManager.getPendingCard() == card) {
+            cancelPending();
+            setStatus("ยกเลิกการเลือกการ์ดแล้ว");
+            return;
+        }
+
+        if (targetingManager.getPendingCard() != null) {
+            cancelPending();
+        }
+
+        startCardPlay(card);
+    }
+
+    private void startCardPlay(Card card) {
+        if (myPlayer == null || gameState == null || players == null) {
+            setStatus("ยังไม่มีเกมที่พร้อมเล่น");
+            return;
+        }
+
+        if (gameState.isGameOver()) {
+            setStatus("เกมจบแล้ว");
+            return;
+        }
+
+        if (!myPlayer.isActive()) {
+            setStatus("คุณแพ้แล้ว — ออกจากเกม (Deck Out)");
+            return;
+        }
+
+        if (client != null && gameState.getCurrentPlayer() != myPlayer) {
+            setStatus("ยังไม่ถึงเทิร์นของคุณ");
+            return;
+        }
+
+        if (!myPlayer.getHand().contains(card)) {
+            return;
+        }
+
+        if (myPlayer.getActionPoints() <= 0) {
+            setStatus("AP หมดแล้ว (0/2) — กด \"จบเทิร์น\" เพื่อเริ่มเทิร์นใหม่");
+            updateMyHand(myPlayer.getHand());
+            return;
+        }
+
+        if (card instanceof StarCard) {
+            sendPlayToServer(card, null, null, null);
+            return;
+        }
+
+        if (!(card instanceof SpecialCard)) {
+            setStatus("ไม่รู้จักชนิดการ์ดนี้: " + card.getName());
+            return;
+        }
+
+        SpecialCard special = (SpecialCard) card;
+        String error = CardActionHandler.validateSpecialCard(special, myPlayer, gameState, otherHandCardCount(card));
+        if (error != null) {
+            setStatus(error);
+            return;
+        }
+
+        String targetType = special.getTargetType();
+        String prompt = special.getPromptMessage();
+
+        if (SpecialCard.TARGET_ENEMY_STAR.equals(targetType)) {
+            Set<StarCard> targets = CardActionHandler.getTargetableEnemyStars(players, myPlayer);
+            if (targets.isEmpty()) {
+                setStatus(special.getName() + ": ไม่มีดาวคู่แข่งที่เลือกได้");
+                return;
+            }
+            beginTargeting(card, TargetingManager.PendingMode.ENEMY_STAR, targets, null, prompt);
+        } else if (SpecialCard.TARGET_ALLY_STAR.equals(targetType)) {
+            Set<StarCard> targets = CardActionHandler.getTargetableOwnStars(myPlayer);
+            if (targets.isEmpty()) {
+                setStatus(special.getName() + ": คุณยังไม่มีดาวบนสนาม");
+                return;
+            }
+            beginTargeting(card, TargetingManager.PendingMode.ALLY_STAR, targets, null, prompt);
+        } else if (SpecialCard.TARGET_ENEMY_PLAYER.equals(targetType)) {
+            Set<Player> targets = new HashSet<>();
+            for (Player player : players) {
+                if (player != myPlayer && player.isActive()) {
+                    if (special.getName().equals("Supernova")) {
+                        if (hasTargetableStar(player)) targets.add(player);
+                    } else if (special.getName().equals("Worm Hole")) {
+                        if (handCountOf(player) > 0) targets.add(player);
+                    } else {
+                        targets.add(player);
+                    }
+                }
+            }
+            if (targets.isEmpty()) {
+                setStatus(special.getName() + ": ไม่มีผู้เล่นเป้าหมายที่เลือกได้");
+                return;
+            }
+            beginTargeting(card, TargetingManager.PendingMode.ENEMY_PLAYER, null, targets, prompt);
+        } else if (SpecialCard.TARGET_NONE.equals(targetType)) {
+            sendPlayToServer(card, null, null, null);
+        } else {
+            setStatus("ยังไม่ได้เชื่อม Logic ของการ์ด: " + special.getName());
+        }
+    }
+
+    private void beginTargeting(Card card, TargetingManager.PendingMode mode, Set<StarCard> stars,
+                                Set<Player> targetPlayers, String message) {
+        targetingManager.begin(card, mode);
+        boardPanel.setSelectable(stars, targetPlayers);
+        updateMyHand(myPlayer.getHand());
+        setStatus(message);
+    }
+
+    public void cancelPending() {
+        targetingManager.reset();
+        boardPanel.clearSelectable();
+
+        if (myPlayer != null) {
+            updateMyHand(myPlayer.getHand());
+        }
+    }
+
+    private void handleStarClick(StarCard star) {
+        if (targetingManager.getPendingCard() == null) return;
+
+        Player owner = findOwner(star);
+        if (owner == null) return;
+
+        TargetingManager.PendingMode mode = targetingManager.getPendingMode();
+
+        if (mode == TargetingManager.PendingMode.ENEMY_STAR) {
+            if (owner == myPlayer) {
+                setStatus("เลือกดาวของคู่แข่ง ไม่ใช่ดาวของตนเอง");
+                return;
+            }
+
+            if (!owner.isActive()) {
+                setStatus("ผู้เล่นนี้หลุดออกจากเกมแล้ว");
+                return;
+            }
+
+            if (targetingManager.getPendingCard().getName().equals("Pulsar")) {
+                if (otherHandCardCount(targetingManager.getPendingCard()) == 0) {
+                    cancelPending();
+                    setStatus("Pulsar: ไม่มีการ์ดใบอื่นให้ทิ้งแล้ว");
+                    return;
+                }
+
+                targetingManager.setPendingStar(star);
+                targetingManager.setPendingTarget(owner);
+                targetingManager.setPendingMode(TargetingManager.PendingMode.COST_CARD);
+                boardPanel.clearSelectable();
+                updateMyHand(myPlayer.getHand());
+                setStatus("Pulsar: เลือกการ์ดอีก 1 ใบในมือเพื่อทิ้งเป็นค่าการใช้");
+                return;
+            }
+
+            sendPlayToServer(targetingManager.getPendingCard(), owner, star, null);
+        } else if (mode == TargetingManager.PendingMode.ALLY_STAR) {
+            if (owner != myPlayer) {
+                setStatus("เลือกดาวของตนเองเท่านั้น");
+                return;
+            }
+
+            sendPlayToServer(targetingManager.getPendingCard(), myPlayer, star, null);
+        } else if (mode == TargetingManager.PendingMode.ENEMY_PLAYER) {
+            handlePlayerClick(owner);
+        }
+    }
+
+    private void handlePlayerClick(Player target) {
+        if (targetingManager.getPendingCard() == null || targetingManager.getPendingMode() != TargetingManager.PendingMode.ENEMY_PLAYER) {
+            return;
+        }
+
+        if (target == myPlayer) {
+            setStatus("เลือกผู้เล่นคู่แข่งเท่านั้น");
+            return;
+        }
+
+        if (!target.isActive()) {
+            setStatus("ผู้เล่นนี้หลุดออกจากเกมแล้ว");
+            return;
+        }
+
+        if (targetingManager.getPendingCard().getName().equals("Worm Hole")) {
+            if (handCountOf(target) <= 0) {
+                setStatus("Worm Hole: ผู้เล่นนี้ไม่มีการ์ดในมือ");
+                return;
+            }
+
+            targetingManager.setPendingTarget(target);
+            targetingManager.setPendingMode(TargetingManager.PendingMode.COST_CARD);
+            boardPanel.clearSelectable();
+            updateMyHand(myPlayer.getHand());
+            setStatus("Worm Hole: เลือกการ์ดในมือ 1 ใบเพื่อแลกกับ " + target.getUsername());
+            return;
+        }
+
+        if (targetingManager.getPendingCard().getName().equals("Supernova")) {
+            sendPlayToServer(targetingManager.getPendingCard(), target, null, null);
+        }
+    }
+
+    private void resolveCostCard(Card cost) {
+        Card pendingCard = targetingManager.getPendingCard();
+        if (pendingCard == null || cost == null) return;
+
+        if (cost == pendingCard) {
+            cancelPending();
+            setStatus("ยกเลิกการเล่นการ์ดแล้ว");
+            return;
+        }
+
+        if (!myPlayer.getHand().contains(cost)) return;
+
+        sendPlayToServer(pendingCard, targetingManager.getPendingTarget(), targetingManager.getPendingStar(), cost);
+    }
+
+    private void sendPlayToServer(Card card, Player target, StarCard targetStar, Card cost) {
+        if (client == null) {
+            setStatus("ไม่ได้เชื่อมต่อกับเซิร์ฟเวอร์");
+            return;
+        }
+
+        String actionCommand = CardActionHandler.buildServerCommand(card, target, targetStar, cost, players);
+        if (actionCommand == null) {
+            setStatus("ไม่พบรหัสการ์ดสำหรับส่งไปเซิร์ฟเวอร์");
+            return;
+        }
+
+        client.sendAction(actionCommand);
+        cancelPending();
+        setStatus("ส่งคำสั่งเล่นการ์ดไปยังเซิร์ฟเวอร์แล้ว...");
+
+        if (onCardSelected != null) {
+            onCardSelected.accept(card);
+        }
+    }
+
+    private void showGameOver(Player winner) {
+        if (gameOverAnnounced) return;
+        gameOverAnnounced = true;
+
+        if (statusBarPanel != null) {
+            statusBarPanel.setEndTurnEnabled(false);
+        }
+
+        String message;
+        if (winner == null) {
+            message = "เกมจบแล้ว — ไม่มีผู้เล่นเหลืออยู่";
+        } else if (winner == myPlayer) {
+            message = "คุณชนะ!";
+        } else {
+            message = winner.getUsername() + " ชนะ";
+        }
+
+        setStatus(message);
+        JOptionPane.showMessageDialog(this, message, "จบเกม", JOptionPane.INFORMATION_MESSAGE);
+    }
+
+    private int otherHandCardCount(Card excluded) {
+        if (myPlayer == null) return 0;
+        int count = 0;
+        for (Card card : myPlayer.getHand()) {
+            if (card != excluded) count++;
+        }
+        return count;
+    }
+
+    private int handCountOf(Player player) {
+        if (player == null || !player.isActive()) return 0;
+        Integer count = handCounts.get(player);
+        return count != null ? count : player.getHand().size();
+    }
+
+    private boolean hasTargetableStar(Player player) {
+        for (StarCard star : player.getField()) {
+            if (star != null && !player.isCloaked(star)) return true;
+        }
+        return false;
+    }
+
+    private Player findOwner(StarCard star) {
+        if (players == null) return null;
+        for (Player p : players) {
+            for (StarCard fieldStar : p.getField()) {
+                if (fieldStar == star) return p;
+            }
+        }
+        return null;
+    }
+
+    private void onEndTurn(ActionEvent e) {
+        endTurn();
+    }
+
+    public void endTurn() {
+        if (myPlayer == null) return;
+
+        if (gameState != null && gameState.isGameOver()) {
+            setStatus("เกมจบแล้ว");
+            return;
+        }
+
+        if (!myPlayer.isActive()) {
+            setStatus("คุณแพ้แล้ว — ออกจากเกม (Deck Out)");
+            return;
+        }
+
+        cancelPending();
+
+        if (client != null) {
+            if (gameState != null && gameState.getCurrentPlayer() != myPlayer) {
+                setStatus("ยังไม่ถึงเทิร์นของคุณ");
+                return;
+            }
+
+            client.sendAction("END_TURN");
+            setStatus("ส่งคำสั่งจบเทิร์นแล้ว กำลังรอเซิร์ฟเวอร์...");
+        }
+    }
+
+    private void setStatus(String text) {
+        if (statusBarPanel != null) {
+            statusBarPanel.setStatusText(text);
+        }
+    }
+
+    public void updateOpponentHands(int topCount, int leftCount, int rightCount) {
+        topHandPanel.removeAll();
+        leftHandPanel.removeAll();
+        rightHandPanel.removeAll();
+
+        for (int i = 0; i < topCount; i++) {
+            CardButton back = CardButton.back();
+            back.setPreferredSize(new Dimension(60, 84));
+            back.setMaximumSize(new Dimension(60, 84));
+            topHandPanel.add(back);
+        }
+
+        for (int i = 0; i < leftCount; i++) {
+            leftHandPanel.add(CardButton.back());
+        }
+
+        for (int i = 0; i < rightCount; i++) {
+            rightHandPanel.add(CardButton.back());
+        }
+
+        topHandPanel.revalidate();
+        topHandPanel.repaint();
+        leftHandPanel.revalidate();
+        leftHandPanel.repaint();
+        rightHandPanel.revalidate();
+        rightHandPanel.repaint();
+    }
+
+    
+    public void updateBoardState(String state) {
+
+        if (state == null || state.isEmpty()) return;
+
+        if (state.startsWith("SYSTEM#")) {
+            setStatus(state.substring("SYSTEM#".length()).replace('_', ' '));
+            return;
+        }
+
+        if (state.startsWith("ERR#")) {
+            setStatus("เซิร์ฟเวอร์: " + state.substring("ERR#".length()).replace('#', ' '));
+            return;
+        }
+
+        if (state.equals("HAND") || state.startsWith("HAND#")) {
+            applyHandSnapshot(state);
+            return;
+        }
+
+        if (!state.startsWith("UPDATE_BOARD#")) return;
+
+        applyBoardSnapshot(state);
+    }
+
+    private void applyHandSnapshot(String message) {
+        if (myPlayer == null) return;
+        List<Card> newHand = ProtocolParser.parseHand(message);
+        myPlayer.getHand().clear();
+        myPlayer.getHand().addAll(newHand);
+        updateMyHand(myPlayer.getHand());
+    }
+
+    private void applyBoardSnapshot(String snapshot) {
+        ProtocolParser.BoardUpdateData data = ProtocolParser.parseBoard(snapshot);
+
+        List<Player> targetPlayers = players;
+        if ((targetPlayers == null || targetPlayers.isEmpty()) && gameState != null) {
+            targetPlayers = gameState.getPlayers();
+        }
+
+        if (targetPlayers == null) return;
+
+        cancelPending();
+
+        int[] oldDropCounts = new int[targetPlayers.size()];
+        for (int i = 0; i < targetPlayers.size(); i++) {
+            Player player = targetPlayers.get(i);
+            if (player != null) {
+                oldDropCounts[i] = player.getDropZone().size();
+                player.clearField();
+                player.getDropZone().clear();
+            }
+        }
+
+        int[] handCountsByIndex = new int[targetPlayers.size()];
+        int[] deckCountsByIndex = new int[targetPlayers.size()];
+        for (int i = 0; i < deckCountsByIndex.length; i++) deckCountsByIndex[i] = -1;
+
+        for (String record : data.playerRecords) {
+            String[] parts = record.split(",", -1);
+            if (parts.length < 6) continue;
+
+            int index = parseInt(parts[0], -1);
+            if (index < 0 || index >= targetPlayers.size()) continue;
+
+            Player player = targetPlayers.get(index);
+            if (player == null) continue;
+
+            player.setActionPoints(parseInt(parts[2], player.getActionPoints()));
+            player.setActive(parts.length < 7 || !"0".equals(parts[6]));
+            handCountsByIndex[index] = Math.max(0, parseInt(parts[3], player.getHand().size()));
+            deckCountsByIndex[index] = Math.max(0, parseInt(parts[4], -1));
+        }
+
+        deckCounts.clear();
+        handCounts.clear();
+
+        for (int i = 0; i < deckCountsByIndex.length; i++) {
+            if (targetPlayers.get(i) == null) continue;
+            handCounts.put(targetPlayers.get(i), handCountsByIndex[i]);
+            if (deckCountsByIndex[i] >= 0) {
+                deckCounts.put(targetPlayers.get(i), deckCountsByIndex[i]);
+            }
+        }
+
+        boardPanel.setDeckCounts(deckCounts);
+        updateDeckLabel();
+
+        for (String record : data.fieldRecords) {
+            String[] parts = record.split(",", -1);
+            if (parts.length < 7) continue;
+
+            int playerIndex = parseInt(parts[0], -1);
+            int slot = parseInt(parts[1], -1);
+            if (playerIndex < 0 || playerIndex >= targetPlayers.size()) continue;
+
+            Player player = targetPlayers.get(playerIndex);
+            if (player == null || slot < 0 || slot >= player.getField().length) continue;
+
+            int maxHp = Math.max(1, parseInt(parts[4], 1));
+            int hp = Math.max(0, Math.min(maxHp, parseInt(parts[3], maxHp)));
+            String cardName = parts[2];
+            StarCard star = new StarCard("NET-" + playerIndex + "-" + slot,
+                    cardName, maxHp, ImgPath.get(cardName), slot);
+
+            if (hp < maxHp) star.takeDamage(maxHp - hp);
+            if (!player.placeStar(star)) continue;
+
+            if ("1".equals(parts[5])) player.addShield(star);
+            if ("1".equals(parts[6])) player.addCloak(star);
+        }
+
+        for (String record : data.dropRecords) {
+            String[] parts = record.split(",", -1);
+            if (parts.length < 6) continue;
+
+            int playerIndex = parseInt(parts[0], -1);
+            if (playerIndex < 0 || playerIndex >= targetPlayers.size()) continue;
+
+            Player player = targetPlayers.get(playerIndex);
+            if (player == null) continue;
+
+            Card card = CardFactory.create(parts[1], parts[2], parts[3],
+                    parseInt(parts[4], 0), parseInt(parts[5], -1));
+
+            if (card != null) {
+                player.getDropZone().add(card);
+            }
+        }
+
+        for (int i = 0; i < targetPlayers.size(); i++) {
+            Player player = targetPlayers.get(i);
+            if (player == null) continue;
+
+            int newDropCount = player.getDropZone().size();
+            if (newDropCount > oldDropCounts[i] && newDropCount > 0) {
+                Card lastDrop = player.getDropZone().get(newDropCount - 1);
+                boardPanel.playCardToDropZone(lastDrop, loadCardImage(lastDrop));
+            }
+        }
+
+        if (gameState != null) {
+            if (data.turn >= 0) gameState.setCurrentPlayerIndex(data.turn);
+            if (data.phase >= 0) gameState.setCurrentPhase(data.phase);
+
+            gameState.setBlackHoleUsed(data.blackHoleUsed);
+            gameState.setGameOver(data.gameOver);
+
+            if (data.winnerIndex >= 0 && data.winnerIndex < targetPlayers.size()) {
+                gameState.setWinner(targetPlayers.get(data.winnerIndex));
+            }
+
+            if (data.gameOver) {
+                showGameOver(gameState.getWinner());
+            } else if (gameState.getCurrentPlayer() != null) {
+                Player current = gameState.getCurrentPlayer();
+                String phaseText = phaseName(gameState.getCurrentPhase());
+
+                if (current == myPlayer) {
+                    setStatus("ถึงเทิร์นของคุณ — AP " + current.getActionPoints() + " (เฟส " + phaseText + ")");
+                } else {
+                    setStatus("รอเทิร์นของ " + current.getUsername() + " (เฟส " + phaseText + ")");
+                }
+            }
+
+            if (statusBarPanel != null) {
+                boolean canEndTurn = !data.gameOver && myPlayer != null && myPlayer.isActive()
+                        && gameState.getCurrentPlayer() == myPlayer;
+                statusBarPanel.setEndTurnEnabled(canEndTurn);
+            }
+
+            if (!data.gameOver && myPlayer != null && !myPlayer.isActive()) {
+                if (statusBarPanel != null) statusBarPanel.setEndTurnEnabled(false);
+                setStatus("คุณแพ้แล้ว — เด็คหมด (Deck Out)");
+            }
+        }
+
+        if (myPlayer != null) {
+            updateMyHand(myPlayer.getHand());
+        }
+
+        if (targetPlayers.size() >= 2) {
+            int topCount = handCountsByIndex[1];
+            int leftCount = targetPlayers.size() > 2 ? handCountsByIndex[2] : 0;
+            int rightCount = targetPlayers.size() > 3 ? handCountsByIndex[3] : 0;
+            updateOpponentHands(topCount, leftCount, rightCount);
+        }
+
+        boardPanel.revalidate();
+        boardPanel.repaint();
+    }
+
+    private static int parseInt(String value, int fallback) {
+        try {
+            return Integer.parseInt(value.trim());
+        } catch (NumberFormatException e) {
+            return fallback;
+        }
+    }
+
+    private static String phaseName(int phase) {
+        if (phase == 1) return "จั่ว";
+        if (phase == 3) return "จบ";
+        return "เล่น";
+    }
+
+    public BoardPanel getBoardPanel() {
+        return boardPanel;
+    }
+
+    private Image loadCardImage(Card card) {
+        if (card == null) return null;
+        String path = ImgPath.get(card.getName());
+        if (path == null) return null;
+
+        Image img = new ImageIcon(path).getImage();
+        return img.getWidth(null) <= 0 ? null : img;
+    }
+
+    private static class SideHandPanel extends JPanel {
+        SideHandPanel() {
+            setOpaque(false);
+            setLayout(null);
+        }
+
+        @Override
+        public void doLayout() {
+            int count = getComponentCount();
+            if (count == 0) return;
+
+            int gap = 6;
+            int availableW = getWidth();
+            int availableH = getHeight();
+
+            int cardW = Math.max(40, availableW - 12);
+            int cardH = (int) Math.round(cardW / 1.6);
+
+            int totalH = count * cardH + (count - 1) * gap;
+            if (totalH > availableH) {
+                cardH = Math.max(20, (availableH - (count - 1) * gap) / count);
+                cardW = (int) Math.round(cardH * 1.6);
+                totalH = count * cardH + (count - 1) * gap;
+            }
+
+            int startX = (availableW - cardW) / 2;
+            int startY = Math.max(0, (availableH - totalH) / 2);
+            int y = startY;
+
+            for (Component card : getComponents()) {
+                card.setBounds(startX, y, cardW, cardH);
+                y += cardH + gap;
+            }
+        }
+    }
+}
+================================================================
+FILE: ImgPath.java
+================================================================
+import java.io.File;
+
+public class ImgPath {
+
+    public static final String DIR = System.getProperty("user.dir") + File.separator + "pic" + File.separator;
+
+    public static final String The_Sun = DIR + "the_sun.JPG";
+    public static final String Mercury = DIR + "mecury.JPG";
+    public static final String Venus = DIR + "venus.JPG";
+    public static final String Earth = DIR + "earth.JPG";
+    public static final String Mars = DIR + "mars.JPG";
+    public static final String Jupiter = DIR + "jupiter.JPG";
+    public static final String Saturn = DIR + "saturn.JPG";
+    public static final String Uranus = DIR + "uranus.JPG";
+    public static final String Neptune = DIR + "neptune.JPG";
+    public static final String Black_hole = DIR + "black_hole.JPG";
+    public static final String Meteor_Strike = DIR + "meteor_strike.JPG";
+    public static final String Bigbang = DIR + "bigbang.JPG";
+    public static final String Super_nova = DIR + "super_nova.JPG";
+    public static final String worm_hole = DIR + "worm_hole.JPG";
+    public static final String pulsar = DIR + "pulsar.JPG";
+    public static final String forc_field = DIR + "forc_field.JPG";
+    public static final String nebular_cloak = DIR + "nebular_cloak.JPG";
+    public static final String stallar_regenneration = DIR + "stallar_regenneration.JPG";
+    public static final String space_prode = DIR + "space_prode.JPG";
+    public static final String Field = DIR + "field.JPG";
+    public static final String GameTable = DIR + "Game-Table.jpg";
+
+    public static String get(String cardName) {
+        if (cardName == null) {
+            return null;
+        }
+
+        String key = cardName.trim().toLowerCase();
+
+        if (key.equals("the sun")) {
+            return The_Sun;
+        }
+        if (key.equals("mercury")) {
+            return Mercury;
+        }
+        if (key.equals("venus")) {
+            return Venus;
+        }
+        if (key.equals("earth")) {
+            return Earth;
+        }
+        if (key.equals("mars")) {
+            return Mars;
+        }
+        if (key.equals("jupiter")) {
+            return Jupiter;
+        }
+        if (key.equals("saturn")) {
+            return Saturn;
+        }
+        if (key.equals("uranus")) {
+            return Uranus;
+        }
+        if (key.equals("neptune")) {
+            return Neptune;
+        }
+        if (key.equals("black hole")) {
+            return Black_hole;
+        }
+        if (key.equals("meteor strike")) {
+            return Meteor_Strike;
+        }
+        if (key.equals("big bang")) {
+            return Bigbang;
+        }
+        if (key.equals("super nova") || key.equals("supernova")) {
+            return Super_nova;
+        }
+        if (key.equals("worm hole")) {
+            return worm_hole;
+        }
+        if (key.equals("pulsar")) {
+            return pulsar;
+        }
+        if (key.equals("force field")) {
+            return forc_field;
+        }
+        if (key.equals("nebula cloak")) {
+            return nebular_cloak;
+        }
+        if (key.equals("stellar regeneration")) {
+            return stallar_regenneration;
+        }
+        if (key.equals("space probe")) {
+            return space_prode;
+        }
+
+        return null;
+    }
+}
+================================================================
+FILE: Player.java
+================================================================
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+
+public class Player {
+    public static final int MAX_FIELD = 9;
+    public static final int MAX_HAND = 7;
+    public static final int ACTION_POINTS_PER_TURN = 2;
+
+    private String username;
+    private int actionPoints;
+    private List<Card> hand;
+    private StarCard[] field;
+    private List<Card> dropZone;
+    private Deck deck;
+    private boolean hasForceField;
+    private boolean pulsarUsedThisTurn;
+    private boolean active;
+    private Set<StarCard> shieldedStars;
+    private Set<StarCard> cloakedStars;
+    private Runnable changeListener;
+
+    public Player(String username) {
+        this.username = username;
+        this.actionPoints = ACTION_POINTS_PER_TURN;
+        this.field = new StarCard[MAX_FIELD];
+        this.hand = new ArrayList<>();
+        this.dropZone = new ArrayList<>();
+        this.deck = new Deck();
+        this.hasForceField = false;
+        this.pulsarUsedThisTurn = false;
+        this.active = true;
+        this.shieldedStars = new HashSet<>();
+        this.cloakedStars = new HashSet<>();
+        this.changeListener = null;
+    }
+
+    void setChangeListener(Runnable changeListener) {
+        this.changeListener = changeListener;
+    }
+
+    private void fireStateChanged() {
+        if (changeListener != null) {
+            changeListener.run();
+        }
+    }
+
+    public void resetActionPoints() {
+        this.actionPoints = ACTION_POINTS_PER_TURN;
+        this.pulsarUsedThisTurn = false;
+        fireStateChanged();
+    }
+
+    public boolean isActive() {
+        return active;
+    }
+
+    public void setActive(boolean active) {
+        this.active = active;
+    }
+
+    public boolean isPulsarUsedThisTurn() {
+        return pulsarUsedThisTurn;
+    }
+
+    public boolean markPulsarUsed() {
+        if (pulsarUsedThisTurn) {
+            return false;
+        }
+
+        pulsarUsedThisTurn = true;
+        fireStateChanged();
+        return true;
+    }
+
+    public void setActionPoints(int actionPoints) {
+        this.actionPoints = Math.max(0, actionPoints);
+        fireStateChanged();
+    }
+
+    public boolean useActionPoint(int cost) {
+        if (this.actionPoints >= cost) {
+            this.actionPoints -= cost;
+            fireStateChanged();
+            return true;
+        }
+        return false;
+    }
+
+    public void setHasForceField(boolean hasForceField) {
+        this.hasForceField = hasForceField;
+        fireStateChanged();
+    }
+
+    public String getUsername() {
+        return username;
+    }
+
+    public int getActionPoints() {
+        return actionPoints;
+    }
+
+    public List<Card> getHand() {
+        return hand;
+    }
+
+    public StarCard[] getField() {
+        return field;
+    }
+
+    public List<Card> getDropZone() {
+        return dropZone;
+    }
+
+    public Deck getDeck() {
+        return deck;
+    }
+
+    public boolean hasForceField() {
+        return hasForceField;
+    }
+
+    public void addCardToHand(Card c) {
+        if (c == null) {
+            return;
+        }
+        hand.add(c);
+        fireStateChanged();
+    }
+
+    public void removeCardFromHand(Card c) {
+        if (hand.remove(c)) {
+            fireStateChanged();
+        }
+    }
+
+    public boolean hasStarOnField(String name) {
+        if (name == null) {
+            return false;
+        }
+
+        for (StarCard star : field) {
+            if (star != null && name.equals(star.getName())) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    public boolean placeStar(StarCard star) {
+        if (star == null) {
+            return false;
+        }
+
+        if (hasStarOnField(star.getName())) {
+            return false;
+        }
+
+        int pos = star.getOrbitPosition();
+
+        if (pos < 0 || pos >= field.length || field[pos] != null) {
+            pos = findFirstEmptySlot();
+
+            if (pos < 0) {
+                return false;
+            }
+        }
+
+        field[pos] = star;
+        star.setOrbitPosition(pos);
+        star.setChangeListener(this::fireStateChanged);
+        fireStateChanged();
+        return true;
+    }
+
+    public int findFirstEmptySlot() {
+        for (int i = 0; i < field.length; i++) {
+            if (field[i] == null) {
+                return i;
+            }
+        }
+
+        return -1;
+    }
+
+    public void removeStarFromField(StarCard star) {
+        if (star == null) {
+            return;
+        }
+
+        int pos = star.getOrbitPosition();
+
+        if (pos >= 0 && pos < field.length && field[pos] == star) {
+            field[pos] = null;
+        }
+
+        star.setChangeListener(null);
+        shieldedStars.remove(star);
+        cloakedStars.remove(star);
+        fireStateChanged();
+    }
+
+    public void clearField() {
+        for (int i = 0; i < field.length; i++) {
+            if (field[i] != null) {
+                field[i].setChangeListener(null);
+                field[i] = null;
+            }
+        }
+
+        shieldedStars.clear();
+        cloakedStars.clear();
+        fireStateChanged();
+    }
+
+    public boolean checkWinCondition() {
+        for (StarCard star : field) {
+            if (star == null) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    public boolean isHandOverLimit() {
+        return hand.size() > MAX_HAND;
+    }
+
+    public void discardToLimit(Card c) {
+        if (hand.remove(c)) {
+            addToDropZone(c);
+        }
+    }
+
+    public void addToDropZone(Card c) {
+        if (c != null) {
+            dropZone.add(c);
+            fireStateChanged();
+        }
+    }
+
+    public Card takeFromDropZone(String name) {
+        if (name == null) {
+            return null;
+        }
+
+        for (int i = 0; i < dropZone.size(); i++) {
+            Card c = dropZone.get(i);
+            if (name.equals(c.getName())) {
+                Card taken = dropZone.remove(i);
+                fireStateChanged();
+                return taken;
+            }
+        }
+        return null;
+    }
+
+    public boolean isShielded(StarCard star) {
+        return shieldedStars.contains(star);
+    }
+
+    public void addShield(StarCard star) {
+        if (star != null && shieldedStars.add(star)) {
+            fireStateChanged();
+        }
+    }
+
+    public void removeShield(StarCard star) {
+        if (shieldedStars.remove(star)) {
+            fireStateChanged();
+        }
+    }
+
+    public boolean isCloaked(StarCard star) {
+        return cloakedStars.contains(star);
+    }
+
+    public void addCloak(StarCard star) {
+        if (star != null && cloakedStars.add(star)) {
+            fireStateChanged();
+        }
+    }
+
+    public void clearAllBuffs() {
+        if (shieldedStars.isEmpty() && cloakedStars.isEmpty()) {
+            return;
+        }
+
+        shieldedStars.clear();
+        cloakedStars.clear();
+        fireStateChanged();
+    }
+
+    public void clearExpiredBuffs() {
+        if (!cloakedStars.isEmpty()) {
+            cloakedStars.clear();
+            fireStateChanged();
+        }
+    }
+
+    public boolean isProtected(StarCard star) {
+        return isShielded(star) || isCloaked(star);
+    }
+
+    public List<StarCard> getTargetableStars() {
+        List<StarCard> result = new ArrayList<>();
+        for (StarCard star : field) {
+            if (star != null && !isCloaked(star)) {
+                result.add(star);
+            }
+        }
+        return result;
+    }
+}
+================================================================
+FILE: ProtocolParser.java
+================================================================
+import java.util.ArrayList;
+import java.util.List;
+
+public class ProtocolParser {
+
+    
+    public static class BoardUpdateData {
+        public int turn = -1;
+        public int phase = -1;
+        public int winnerIndex = -1;
+        public boolean blackHoleUsed = false;
+        public boolean gameOver = false;
+        public List<String> playerRecords = new ArrayList<>();
+        public List<String> fieldRecords = new ArrayList<>();
+        public List<String> dropRecords = new ArrayList<>();
+    }
+
+    
+    public static List<Card> parseHand(String message) {
+        List<Card> newHand = new ArrayList<>();
+        if (message == null || message.isEmpty()) {
+            return newHand;
+        }
+
+        String body = message.startsWith("HAND#") ? message.substring("HAND#".length()) : "";
+
+        if (!body.isEmpty()) {
+            for (String record : body.split("#", -1)) {
+                String[] parts = record.split(",", -1);
+                if (parts.length < 5) continue;
+
+                Card card = CardFactory.create(
+                        parts[0],
+                        parts[1],
+                        parts[2],
+                        parseInt(parts[3], 0),
+                        parseInt(parts[4], -1)
+                );
+
+                if (card != null) {
+                    newHand.add(card);
+                }
+            }
+        }
+        return newHand;
+    }
+
+    
+    public static BoardUpdateData parseBoard(String snapshot) {
+        BoardUpdateData data = new BoardUpdateData();
+        if (snapshot == null || snapshot.isEmpty()) {
+            return data;
+        }
+
+        String[] tokens = snapshot.split("#");
+
+        for (int i = 1; i < tokens.length; i++) {
+            String token = tokens[i];
+            if (token.startsWith("TURN:")) {
+                data.turn = parseInt(token.substring("TURN:".length()), -1);
+            } else if (token.startsWith("PHASE:")) {
+                data.phase = parseInt(token.substring("PHASE:".length()), -1);
+            } else if (token.startsWith("BH:")) {
+                data.blackHoleUsed = "1".equals(token.substring("BH:".length()));
+            } else if (token.startsWith("OVER:")) {
+                data.gameOver = "1".equals(token.substring("OVER:".length()));
+            } else if (token.startsWith("WINNER:")) {
+                data.winnerIndex = parseInt(token.substring("WINNER:".length()), -1);
+            } else if (token.startsWith("P:")) {
+                data.playerRecords.add(token.substring("P:".length()));
+            } else if (token.startsWith("F:")) {
+                data.fieldRecords.add(token.substring("F:".length()));
+            } else if (token.startsWith("D:")) {
+                data.dropRecords.add(token.substring("D:".length()));
+            }
+        }
+        return data;
+    }
+
+    private static int parseInt(String value, int fallback) {
+        try {
+            return Integer.parseInt(value.trim());
+        } catch (NumberFormatException e) {
+            return fallback;
+        }
+    }
+}
+================================================================
+FILE: ServerContext.java
+================================================================
+public interface ServerContext {
+    
+    void processClientAction(String action, ClientHandler sender);
+
+    void removeClient(ClientHandler handler);
+}
+================================================================
+FILE: SpecialCard.java
+================================================================
+public abstract class SpecialCard extends Card {
+
+    
+    public static final String CATEGORY_ATTACK = "ATTACK";
+    public static final String CATEGORY_DEFENSE = "DEFENSE";
+    public static final String CATEGORY_SUPPORT = "SUPPORT";
+    public static final String CATEGORY_SECRET = "SECRET";
+
+    
+    public static final String TARGET_ENEMY_STAR = "ENEMY_STAR";     
+    public static final String TARGET_ALLY_STAR = "ALLY_STAR";       
+    public static final String TARGET_ENEMY_PLAYER = "ENEMY_PLAYER"; 
+    public static final String TARGET_NONE = "NONE";                 
+    public static final String TARGET_COST_CARD = "COST_CARD";       
+
+    private String category;
+
+    public SpecialCard(String id, String name, String category, String imagePath) {
+        
+        super(id, name, "SPECIAL", imagePath);
+        this.category = category;
+    }
+
+    public String getCategory() {
+        return this.category;
+    }
+
+    
+    public abstract String getTargetType();
+
+    
+    public abstract String getPromptMessage();
+}
+================================================================
+FILE: StarCard.java
+================================================================
+public class StarCard extends Card {
+
+    private int hp;
+    private int maxHp;
+    private int orbitPosition;
+    private Runnable changeListener;
+
+    
+    public StarCard(String id, String name, int hp, String imagePath, int orbitPosition) {
+        super(id, name, "STAR", imagePath);
+        this.maxHp = hp;
+        this.hp = hp;
+        this.orbitPosition = orbitPosition;
+        this.changeListener = null;
+    }
+
+    public int getHp() {
+        return hp;
+    }
+
+    public int getMaxHp() {
+        return maxHp;
+    }
+
+    public int getOrbitPosition(){
+        return this.orbitPosition;
+    }
+
+    public void setOrbitPosition(int orbitPosition) {
+        this.orbitPosition = orbitPosition;
+    }
+
+    void setChangeListener(Runnable changeListener) {
+        this.changeListener = changeListener;
+    }
+
+    private void fireStateChanged() {
+        if (changeListener != null) {
+            changeListener.run();
+        }
+    }
+
+    public void takeDamage(int amount) {
+        if (amount < 0) {
+            amount = 0;
+        }
+        if (amount == 0) {
+            return;
+        }
+        this.hp -= amount;
+        if (this.hp < 0) {
+            this.hp = 0;
+        }
+        fireStateChanged();
+    }
+
+    public void heal(int amount) {
+        if (amount < 0) {
+            amount = 0;
+        }
+        if (amount == 0) {
+            return;
+        }
+        this.hp += amount;
+        if (this.hp > maxHp) {
+            this.hp = maxHp;
+        }
+        fireStateChanged();
+    }
+
+    public boolean isDestroyed() {
+        return hp <= 0;
+    }
+
+    @Override
+    public void playEffect(Player owner, Player target, StarCard targetStar, GameState state) {
+        if (owner.placeStar(this)) {
+        } else {
+        }
+    }
+}
+================================================================
+FILE: StatusBarPanel.java
+================================================================
+import java.awt.BorderLayout;
+import java.awt.Color;
+import java.awt.Font;
+import java.awt.event.ActionListener;
+import javax.swing.BorderFactory;
+import javax.swing.JButton;
+import javax.swing.JLabel;
+import javax.swing.JPanel;
+
+public class StatusBarPanel extends JPanel {
+
+    private JLabel deckLabel;
+    private JLabel statusLabel;
+    private JButton endTurnButton;
+
+    public StatusBarPanel() {
+        setLayout(new BorderLayout(12, 0));
+        setOpaque(false);
+        setBorder(BorderFactory.createEmptyBorder(4, 16, 0, 16));
+
+        
+        deckLabel = new JLabel("เด็คคงเหลือ: -");
+        deckLabel.setFont(new Font("Tahoma", Font.BOLD, 12));
+        deckLabel.setForeground(new Color(120, 30, 30));
+        add(deckLabel, BorderLayout.WEST);
+
+        
+        statusLabel = new JLabel("เลือกการ์ดจากมือเพื่อเล่น");
+        statusLabel.setFont(new Font("Tahoma", Font.BOLD, 12));
+        statusLabel.setForeground(new Color(120, 30, 30));
+        add(statusLabel, BorderLayout.CENTER);
+
+        
+        endTurnButton = new JButton("จบเทิร์น");
+        endTurnButton.setFont(new Font("Tahoma", Font.PLAIN, 12));
+        add(endTurnButton, BorderLayout.EAST);
+    }
+
+    
+    public void setDeckText(String text) {
+        if (deckLabel != null) {
+            deckLabel.setText(text);
+        }
+    }
+
+    
+    public void setStatusText(String text) {
+        if (statusLabel != null) {
+            statusLabel.setText(text);
+        }
+    }
+
+    
+    public String getStatusText() {
+        return statusLabel != null ? statusLabel.getText() : "";
+    }
+
+    
+    public void setEndTurnEnabled(boolean enabled) {
+        if (endTurnButton != null) {
+            endTurnButton.setEnabled(enabled);
+        }
+    }
+
+    
+    public void addEndTurnListener(ActionListener listener) {
+        if (endTurnButton != null) {
+            endTurnButton.addActionListener(listener);
+        }
+    }
+}
+================================================================
+FILE: TargetingManager.java
+================================================================
+public class TargetingManager {
+
+    public enum PendingMode {
+        NONE, ENEMY_STAR, ALLY_STAR, ENEMY_PLAYER, COST_CARD
+    }
+
+    private Card pendingCard;
+    private PendingMode pendingMode;
+    private StarCard pendingStar;
+    private Player pendingTarget;
+
+    public TargetingManager() {
+        reset();
+    }
+
+    
+    public void begin(Card card, PendingMode mode) {
+        this.pendingCard = card;
+        this.pendingMode = mode;
+        this.pendingStar = null;
+        this.pendingTarget = null;
+    }
+
+    
+    public void reset() {
+        this.pendingCard = null;
+        this.pendingMode = PendingMode.NONE;
+        this.pendingStar = null;
+        this.pendingTarget = null;
+    }
+
+    
+    public boolean isPending() {
+        return pendingMode != PendingMode.NONE;
+    }
+
+    
+    public Card getPendingCard() {
+        return pendingCard;
+    }
+
+    public void setPendingCard(Card pendingCard) {
+        this.pendingCard = pendingCard;
+    }
+
+    public PendingMode getPendingMode() {
+        return pendingMode;
+    }
+
+    public void setPendingMode(PendingMode pendingMode) {
+        this.pendingMode = pendingMode;
+    }
+
+    public StarCard getPendingStar() {
+        return pendingStar;
+    }
+
+    public void setPendingStar(StarCard pendingStar) {
+        this.pendingStar = pendingStar;
+    }
+
+    public Player getPendingTarget() {
+        return pendingTarget;
+    }
+
+    public void setPendingTarget(Player pendingTarget) {
+        this.pendingTarget = pendingTarget;
+    }
+}
+================================================================
+FILE: WaitingRoomWindow.java
+================================================================
+import java.awt.BorderLayout;
+import java.awt.GridLayout;
+import java.util.*;
+import javax.swing.*;
+
+public class WaitingRoomWindow extends JFrame {
+
+    private final GameClient client;
+    private final boolean isHost;
+    private final String username;
+    private final List<String> lobbyNames;
+    private final JLabel countLabel;
+    private final JTextArea namesArea;
+    private final JButton startButton;
+
+    public WaitingRoomWindow(GameClient client, boolean isHost, String displayIp, int port, String username) {
+        this.client = client;
+        this.isHost = isHost;
+        this.username = username;
+        this.lobbyNames = new ArrayList<>();
+
+        setTitle(isHost ? "My Room" : "Joined Room");
+        setSize(380, 340);
+        setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        setLayout(new BorderLayout(10, 10));
+
+        countLabel = new JLabel("Players in room: 0/4", JLabel.CENTER);
+
+        JLabel roomLabel = new JLabel(roomText(isHost, displayIp, port), JLabel.CENTER);
+
+        JPanel top = new JPanel(new GridLayout(2, 1, 2, 2));
+        top.setBorder(BorderFactory.createEmptyBorder(12, 10, 0, 10));
+        top.add(countLabel);
+        top.add(roomLabel);
+
+        namesArea = new JTextArea();
+        namesArea.setEditable(false);
+        JScrollPane scroll = new JScrollPane(namesArea);
+        scroll.setBorder(BorderFactory.createEmptyBorder(5, 30, 5, 30));
+
+        startButton = new JButton("Start Game");
+        startButton.setEnabled(false);
+        startButton.addActionListener(e -> client.sendAction("START"));
+
+        JPanel bottom = new JPanel();
+        bottom.setBorder(BorderFactory.createEmptyBorder(0, 0, 12, 0));
+        if (isHost) {
+            bottom.add(startButton);
+        } else {
+            bottom.add(new JLabel("Waiting for the host to start..."));
+        }
+
+        add(top, BorderLayout.NORTH);
+        add(scroll, BorderLayout.CENTER);
+        add(bottom, BorderLayout.SOUTH);
+
+        setLocationRelativeTo(null);
+    }
+
+    private String roomText(boolean isHost, String displayIp, int port) {
+        if (isHost) {
+            return "IP: " + displayIp + "   Port: " + port + "   (use 127.0.0.1 on this PC)";
+        }
+        return "Connected: " + displayIp + ":" + port;
+    }
+
+    public void handleMessage(String message) {
+        if (message == null) {
+            return;
+        }
+
+        SwingUtilities.invokeLater(() -> {
+            if (message.startsWith("LOBBY#")) {
+                updateLobby(message);
+            } else if (message.startsWith("SYSTEM#GAME_START")) {
+                startGame(message);
+            } else if (message.startsWith("ERR#")) {
+                JOptionPane.showMessageDialog(this, errorText(message));
+
+                if (message.equals("ERR#SERVER_FULL")
+                        || message.equals("ERR#NAME_TAKEN")
+                        || message.equals("ERR#ALREADY_STARTED")) {
+                    dispose();
+                }
+            }
+        });
+    }
+
+    private void updateLobby(String message) {
+        String[] parts = message.split("#");
+        StringBuilder names = new StringBuilder();
+
+        lobbyNames.clear();
+
+        for (int i = 1; i < parts.length; i++) {
+            String name = parts[i].trim();
+
+            if (name.isEmpty()) {
+                continue;
+            }
+
+            lobbyNames.add(name);
+            names.append(lobbyNames.size()).append(". ").append(name).append("\n");
+        }
+
+        int playerCount = lobbyNames.size();
+        namesArea.setText(names.toString());
+        countLabel.setText("Players in room: " + playerCount + "/4");
+        startButton.setEnabled(isHost && playerCount >= 2);
+    }
+
+    private void startGame(String message) {
+        String[] parts = message.split("#", -1);
+        List<String> names = new ArrayList<>();
+
+        for (int i = 2; i < parts.length; i++) {
+            String name = parts[i].trim();
+
+            if (!name.isEmpty()) {
+                names.add(name);
+            }
+        }
+
+        if (names.isEmpty()) {
+            names.addAll(lobbyNames);
+        }
+
+        if (names.isEmpty()) {
+            JOptionPane.showMessageDialog(this, "Cannot start game: player list is empty");
+            return;
+        }
+
+        List<Player> players = new ArrayList<>();
+        Player me = null;
+
+        for (String name : names) {
+            Player player = new Player(name);
+            players.add(player);
+
+            if (name.equals(username)) {
+                me = player;
+            }
+        }
+
+        if (me == null) {
+            me = players.get(0);
+        }
+
+        GameWindow window = new GameWindow();
+        window.setPlayers(players);
+        window.setMyPlayer(me);
+        window.setGameClient(client);
+
+        client.setUi(window);
+        client.setOnMessage(window::updateBoardState);
+
+        window.setVisible(true);
+        dispose();
+    }
+
+    private String errorText(String message) {
+        if (message.equals("ERR#SERVER_FULL")) {
+            return "Room is full (max 4 players)";
+        }
+        if (message.equals("ERR#NAME_TAKEN")) {
+            return "That name is already taken";
+        }
+        if (message.equals("ERR#NOT_HOST")) {
+            return "Only the host can start the game";
+        }
+        if (message.equals("ERR#NEED_MORE_PLAYERS")) {
+            return "Need at least 2 players";
+        }
+        if (message.equals("ERR#ALREADY_STARTED")) {
+            return "The game has already started";
+        }
+        if (message.equals("ERR#INVALID_NAME")) {
+            return "Invalid player name";
+        }
+        return message;
+    }
+}
+================================================================
+FILE: Special_Card/BigBang.java
+================================================================
+public class BigBang extends SpecialCard
+{
+    public BigBang(String id, String imagePath)
+    {
+        super(id, "Big Bang", SpecialCard.CATEGORY_SECRET, imagePath);
+
+    }
+
+    @Override
+    public void playEffect(Player owner, Player target, StarCard targetStar, GameState state)
+    {
+        if (owner == null)
+            {
+                return;
+            }
+
+        Card sun = owner.takeFromDropZone("The Sun");
+
+        if (sun == null)
+            {
+                sun = owner.getDeck().searchAndRemove("The Sun");
+            }
+
+        if (sun != null)
+            {
+                if (sun instanceof StarCard)
+                    {
+                        StarCard sunStar = (StarCard) sun;
+                        StarCard[] field = owner.getField();
+                        int emptyPos = -1;
+
+                        for (int i = 0; i < field.length; i++)
+                            {
+                                if (field[i] == null)
+                                    {
+                                        emptyPos = i;
+                                        break;
+                                    }
+                            }
+
+                        if (emptyPos < 0)
+                            {
+                                owner.addToDropZone(sun);
+                            }
+                        else
+                            {
+                                sunStar.setOrbitPosition(emptyPos);
+
+                                if (!owner.placeStar(sunStar))
+                                    {
+                                        owner.addToDropZone(sun);
+                                    }
+                            }
+                    }
+                else
+                    {
+                        owner.addToDropZone(sun);
+                    }
+            }
+
+        for (StarCard star : owner.getField())
+            {
+                if (star != null)
+                    {
+                        star.heal(star.getMaxHp());
+                    }
+            }
+    }
+
+    @Override
+    public String getTargetType() {
+        return SpecialCard.TARGET_NONE;
+    }
+
+    @Override
+    public String getPromptMessage() {
+        return "Big Bang: นำ The Sun ลงสนามและฟื้นฟู HP ดาวทุกดวง";
+    }
+}
+================================================================
+FILE: Special_Card/BlackHole.java
+================================================================
+public class BlackHole extends SpecialCard 
+{
+
+    public BlackHole(String id, String imagePath) 
+    {
+        super(id, "Black Hole", SpecialCard.CATEGORY_SECRET, imagePath);
+    }
+
+    @Override
+    public void playEffect(Player owner, Player target, StarCard targetStar, GameState state) 
+    {
+        if (owner == null || state == null) 
+            {
+                return;
+            }
+
+        if (state.isBlackHoleUsed()) 
+            {
+                return;
+            }
+
+        for (Player p : state.getPlayers()) 
+            {
+                for (StarCard star : p.getField()) 
+                    {
+                        if (star != null) 
+                            {
+                                p.removeStarFromField(star);
+                                p.addToDropZone(star);
+                            }
+                    }
+            }
+
+        state.setBlackHoleUsed(true);
+    }
+
+    @Override
+    public String getTargetType() {
+        return SpecialCard.TARGET_NONE;
+    }
+
+    @Override
+    public String getPromptMessage() {
+        return "Black Hole: ทำลายดาวทุกดวงบนสนาม";
+    }
+}
+================================================================
+FILE: Special_Card/ForceField.java
+================================================================
+public class ForceField extends SpecialCard 
+{
+
+    public ForceField(String id, String imagePath) 
+    {
+        super(id, "Force Field", SpecialCard.CATEGORY_DEFENSE, imagePath);
+    }
+
+    @Override
+    public void playEffect(Player owner, Player target, StarCard targetStar, GameState state) 
+    {
+        if (owner == null || targetStar == null) 
+            {
+                return;
+            }
+
+        int pos = targetStar.getOrbitPosition();
+        if (pos < 0 || pos >= owner.getField().length) 
+            {
+                return;
+            }
+
+        if (owner.getField()[pos] != targetStar) 
+            {
+                return;
+            }
+
+        owner.addShield(targetStar);
+    }
+
+    @Override
+    public String getTargetType() {
+        return SpecialCard.TARGET_ALLY_STAR;
+    }
+
+    @Override
+    public String getPromptMessage() {
+        return "Force Field: เลือกดาวของตนเองเพื่อติดโล่ 1 ครั้ง";
+    }
+}
+================================================================
+FILE: Special_Card/MeteorStrike.java
+================================================================
+public class MeteorStrike extends SpecialCard
+{
+
+    public MeteorStrike(String id, String imagePath)
+    {
+        super(id, "Meteor Strike", SpecialCard.CATEGORY_ATTACK, imagePath);
+    }
+
+    @Override
+    public void playEffect(Player owner, Player target, StarCard targetStar, GameState state)
+    {
+        if (owner == null || target == null || targetStar == null)
+            {
+                return;
+            }
+
+        int pos = targetStar.getOrbitPosition();
+        if (pos < 0 || pos >= target.getField().length)
+            {
+                return;
+            }
+
+        if (target.getField()[pos] != targetStar)
+            {
+                return;
+            }
+
+        if (target.isCloaked(targetStar))
+            {
+                return;
+            }
+
+        if (target.isShielded(targetStar))
+            {
+                target.removeShield(targetStar);
+                return;
+            }
+
+        targetStar.takeDamage(2);
+
+        if (targetStar.isDestroyed())
+            {
+                target.removeStarFromField(targetStar);
+                target.addToDropZone(targetStar);
+            }
+    }
+
+    @Override
+    public String getTargetType() {
+        return SpecialCard.TARGET_ENEMY_STAR;
+    }
+
+    @Override
+    public String getPromptMessage() {
+        return "Meteor Strike: เลือกดาวของคู่แข่ง 1 ดวง (ดาเมจ 2)";
+    }
+}
+================================================================
+FILE: Special_Card/NebulaCloak.java
+================================================================
+public class NebulaCloak extends SpecialCard 
+{
+
+    public NebulaCloak(String id, String imagePath) 
+    {
+        super(id, "Nebula Cloak", SpecialCard.CATEGORY_DEFENSE, imagePath);
+    }
+
+    @Override
+    public void playEffect(Player owner, Player target, StarCard targetStar, GameState state) 
+    {
+        if (owner == null || targetStar == null) 
+            {
+                return;
+            }
+
+        int pos = targetStar.getOrbitPosition();
+        if (pos < 0 || pos >= owner.getField().length) 
+            {
+                return;
+            }
+
+        if (owner.getField()[pos] != targetStar) 
+            {
+                return;
+            }
+
+        owner.addCloak(targetStar);
+    }
+
+    @Override
+    public String getTargetType() {
+        return SpecialCard.TARGET_ALLY_STAR;
+    }
+
+    @Override
+    public String getPromptMessage() {
+        return "Nebula Cloak: เลือกดาวของตนเองเพื่อซ่อนจากเป้าหมายโจมตี";
+    }
+}
+================================================================
+FILE: Special_Card/Pulsar.java
+================================================================
+public class Pulsar extends SpecialCard 
+{
+
+    public Pulsar(String id, String imagePath) 
+    {
+        super(id, "Pulsar", SpecialCard.CATEGORY_ATTACK, imagePath);
+    }
+
+    @Override
+    public void playEffect(Player owner, Player target, StarCard targetStar, GameState state) 
+    {
+        
+    }
+
+    public void playEffect(Player owner, Player target, StarCard targetStar, Card cost, GameState state) 
+    {
+        if (owner == null || target == null || targetStar == null || cost == null) 
+            {
+                return;
+            }
+
+        if (owner.isPulsarUsedThisTurn())
+            {
+                return;
+            }
+
+        int pos = targetStar.getOrbitPosition();
+        if (pos < 0 || pos >= target.getField().length) 
+            {
+                return;
+            }
+
+        if (target.getField()[pos] != targetStar) 
+            {
+                return;
+            }
+
+        if (target.isCloaked(targetStar)) 
+            {
+                return;
+            }
+
+        if (!owner.getHand().contains(cost)) 
+            {
+                return;
+            }
+
+        if (!owner.markPulsarUsed())
+            {
+                return;
+            }
+
+        owner.removeCardFromHand(cost);
+        owner.addToDropZone(cost);
+
+        target.removeStarFromField(targetStar);
+        target.addToDropZone(targetStar);
+    }
+
+    @Override
+    public String getTargetType() {
+        return SpecialCard.TARGET_ENEMY_STAR;
+    }
+
+    @Override
+    public String getPromptMessage() {
+        return "Pulsar: เลือกดาวคู่แข่งที่จะทำลาย";
+    }
+}
+================================================================
+FILE: Special_Card/SpaceProbe.java
+================================================================
+public class SpaceProbe extends SpecialCard 
+{
+
+    public SpaceProbe(String id, String imagePath) 
+    {
+        super(id, "Space Probe", SpecialCard.CATEGORY_SUPPORT, imagePath);
+    }
+
+    @Override
+    public void playEffect(Player owner, Player target, StarCard targetStar, GameState state) 
+    {
+        if (owner == null) 
+            {
+                return;
+            }
+
+        for (int i = 0; i < 2; i++) 
+            {
+                Card drawn = owner.getDeck().drawCard();
+
+                if (drawn == null) 
+                    {
+                        break;
+                    }
+
+                owner.addCardToHand(drawn);
+            }
+    }
+
+    @Override
+    public String getTargetType() {
+        return SpecialCard.TARGET_NONE;
+    }
+
+    @Override
+    public String getPromptMessage() {
+        return "Space Probe: จั่วการ์ด 2 ใบ";
+    }
+}
+================================================================
+FILE: Special_Card/StellarRegeneration.java
+================================================================
+public class StellarRegeneration extends SpecialCard 
+{
+
+    public StellarRegeneration(String id, String imagePath) 
+    {
+        super(id, "Stellar Regeneration", SpecialCard.CATEGORY_DEFENSE, imagePath);
+    }
+
+    @Override
+    public void playEffect(Player owner, Player target, StarCard targetStar, GameState state) 
+    {
+        if (owner == null || targetStar == null) 
+            {
+                return;
+            }
+
+        int pos = targetStar.getOrbitPosition();
+        if (pos < 0 || pos >= owner.getField().length) 
+            {
+                return;
+            }
+
+        if (owner.getField()[pos] != targetStar) 
+            {
+                return;
+            }
+
+        targetStar.heal(3);
+    }
+
+    @Override
+    public String getTargetType() {
+        return SpecialCard.TARGET_ALLY_STAR;
+    }
+
+    @Override
+    public String getPromptMessage() {
+        return "Stellar Regeneration: เลือกดาวของตนเองเพื่อฟื้นฟู 3 HP";
+    }
+}
+================================================================
+FILE: Special_Card/Supernova.java
+================================================================
+public class Supernova extends SpecialCard 
+{
+
+    public Supernova(String id, String imagePath) 
+    {
+        super(id, "Supernova", SpecialCard.CATEGORY_ATTACK, imagePath);
+    }
+
+    @Override
+    public void playEffect(Player owner, Player target, StarCard targetStar, GameState state) 
+    {
+        if (owner == null || target == null) 
+            {
+                return;
+            }
+
+        for (StarCard star : target.getField()) 
+            {
+                if (star == null) 
+                    {
+                        continue;
+                    }
+
+                if (target.isCloaked(star)) 
+                    {
+                        continue;
+                    }
+
+                if (target.isShielded(star)) 
+                    {
+                        target.removeShield(star);
+                        continue;
+                    }
+
+                star.takeDamage(1);
+
+                if (star.isDestroyed()) 
+                    {
+                        target.removeStarFromField(star);
+                        target.addToDropZone(star);
+                    }
+            }
+    }
+
+    @Override
+    public String getTargetType() {
+        return SpecialCard.TARGET_ENEMY_PLAYER;
+    }
+
+    @Override
+    public String getPromptMessage() {
+        return "Supernova: เลือกผู้เล่นเป้าหมาย (ดาเมจทุกดาว 1)";
+    }
+}
+================================================================
+FILE: Special_Card/WormHole.java
+================================================================
+import java.util.Random;
+
+public class WormHole extends SpecialCard 
+{
+
+    private static final Random RANDOM = new Random();
+
+    public WormHole(String id, String imagePath) 
+    {
+        super(id, "Worm Hole", SpecialCard.CATEGORY_SUPPORT, imagePath);
+    }
+
+    @Override
+    public void playEffect(Player owner, Player target, StarCard targetStar, GameState state) 
+    {
+        
+    }
+
+    public void playEffectWithCard(Player owner, Player target, Card giveCard, GameState state)
+    {
+        if (owner == null || target == null || giveCard == null) 
+            {
+                return;
+            }
+
+        if (owner == target) 
+            {
+                return;
+            }
+
+        if (!owner.getHand().contains(giveCard)) 
+            {
+                return;
+            }
+
+        if (target.getHand().isEmpty()) 
+            {
+                return;
+            }
+
+        Card taken = target.getHand().get(RANDOM.nextInt(target.getHand().size()));
+        target.removeCardFromHand(taken);
+        owner.removeCardFromHand(giveCard);
+
+        owner.addCardToHand(taken);
+        target.addCardToHand(giveCard);
+    }
+
+    @Override
+    public String getTargetType() {
+        return SpecialCard.TARGET_ENEMY_PLAYER;
+    }
+
+    @Override
+    public String getPromptMessage() {
+        return "Worm Hole: เลือกผู้เล่นเป้าหมายที่จะแลกการ์ด";
+    }
+}

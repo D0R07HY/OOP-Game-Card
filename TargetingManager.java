@@ -13,7 +13,7 @@ public class TargetingManager {
         reset();
     }
 
-    // เริ่มต้นกระบวนการเล็งเป้าหมาย
+    
     public void begin(Card card, PendingMode mode) {
         this.pendingCard = card;
         this.pendingMode = mode;
@@ -21,7 +21,7 @@ public class TargetingManager {
         this.pendingTarget = null;
     }
 
-    // ล้างสถานะการเล็งเป้าหมายทั้งหมด (ยกเลิก)
+    
     public void reset() {
         this.pendingCard = null;
         this.pendingMode = PendingMode.NONE;
@@ -29,12 +29,12 @@ public class TargetingManager {
         this.pendingTarget = null;
     }
 
-    // ตรวจสอบว่ากำลังอยู่ในโหมดเล็งเป้าหมายอยู่หรือไม่
+    
     public boolean isPending() {
         return pendingMode != PendingMode.NONE;
     }
 
-    // Getters และ Setters
+    
     public Card getPendingCard() {
         return pendingCard;
     }

@@ -9,7 +9,7 @@ public class Pulsar extends SpecialCard
     @Override
     public void playEffect(Player owner, Player target, StarCard targetStar, GameState state) 
     {
-        // ต้องเลือกการ์ดที่จะทิ้งจาก GUI แล้วเรียก playEffect ตัวที่มี cost
+        
     }
 
     public void playEffect(Player owner, Player target, StarCard targetStar, Card cost, GameState state) 

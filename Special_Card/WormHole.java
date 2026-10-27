@@ -13,7 +13,7 @@ public class WormHole extends SpecialCard
     @Override
     public void playEffect(Player owner, Player target, StarCard targetStar, GameState state) 
     {
-        // ต้องเลือกการ์ดที่จะแลกจาก GUI แล้วเรียก playEffect ตัวที่มี giveCard
+        
     }
 
     public void playEffectWithCard(Player owner, Player target, Card giveCard, GameState state)

@@ -5,7 +5,7 @@ public class StarCard extends Card {
     private int orbitPosition;
     private Runnable changeListener;
 
-    // เพิ่ม imagePath
+    
     public StarCard(String id, String name, int hp, String imagePath, int orbitPosition) {
         super(id, name, "STAR", imagePath);
         this.maxHp = hp;

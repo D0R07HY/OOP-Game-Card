@@ -16,7 +16,7 @@ public class ClientHandler extends Thread {
     private boolean removed;
     private Player player;
 
-    // แก้ไข Constructor ให้รับ ServerContext
+    
     public ClientHandler(Socket socket, ServerContext context) throws IOException {
         if (socket == null || context == null) {
             throw new IllegalArgumentException("socket and context are required");
@@ -42,7 +42,7 @@ public class ClientHandler extends Thread {
                 }
 
                 try {
-                    // โยนข้อความไปให้ GameServer ทำงานต่อ
+                    
                     context.processClientAction(message, this);
                 } catch (RuntimeException e) {
                     sendMessage("ERROR#SERVER_ERROR#Unexpected server error");

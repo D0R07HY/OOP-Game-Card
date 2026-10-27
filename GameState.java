@@ -57,7 +57,7 @@ public class GameState {
     public void nextTurn() {
         if (isGameOver || players == null || players.isEmpty()) return;
 
-        // ข้ามผู้เล่นที่หลุดออกจากเกมแล้ว
+        
         for (int step = 0; step < players.size(); step++) {
             currentPlayerIndex = (currentPlayerIndex + 1) % players.size();
             Player nextPlayer = getCurrentPlayer();

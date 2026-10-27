@@ -23,7 +23,7 @@ public class GameWindow extends JFrame {
     private GameClient client;
     private Consumer<Card> onCardSelected;
 
-    // จัดการระบบเล็งเป้าหมายผ่าน TargetingManager ที่แยกออกมา
+    
     private final TargetingManager targetingManager = new TargetingManager();
 
     public GameWindow() {
@@ -55,7 +55,7 @@ public class GameWindow extends JFrame {
         myHandPanel.setPreferredSize(new Dimension(0, 150));
         myHandPanel.setBorder(BorderFactory.createMatteBorder(2, 0, 0, 0, new Color(200, 70, 70)));
 
-        // ใช้ StatusBarPanel ที่แยกคลาสออกมา
+        
         statusBarPanel = new StatusBarPanel();
         statusBarPanel.addEndTurnListener(this::onEndTurn);
 
@@ -527,7 +527,7 @@ public class GameWindow extends JFrame {
         rightHandPanel.repaint();
     }
 
-    // แปลงข้อมูลจาก ProtocolParser
+    
     public void updateBoardState(String state) {
 
         if (state == null || state.isEmpty()) return;

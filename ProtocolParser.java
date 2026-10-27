@@ -3,7 +3,7 @@ import java.util.List;
 
 public class ProtocolParser {
 
-    // คลาสสำหรับเก็บข้อมูลที่แกะออกมาจาก Snapshot ของบอร์ด
+    
     public static class BoardUpdateData {
         public int turn = -1;
         public int phase = -1;
@@ -15,7 +15,7 @@ public class ProtocolParser {
         public List<String> dropRecords = new ArrayList<>();
     }
 
-    // แปลงข้อความ HAND#... ให้เป็นรายการการ์ดในมือ
+    
     public static List<Card> parseHand(String message) {
         List<Card> newHand = new ArrayList<>();
         if (message == null || message.isEmpty()) {
@@ -45,7 +45,7 @@ public class ProtocolParser {
         return newHand;
     }
 
-    // แปลงข้อความ UPDATE_BOARD#... ให้เป็นก้อนข้อมูลที่นำไปอัปเดตสถานะเกมได้ง่าย
+    
     public static BoardUpdateData parseBoard(String snapshot) {
         BoardUpdateData data = new BoardUpdateData();
         if (snapshot == null || snapshot.isEmpty()) {

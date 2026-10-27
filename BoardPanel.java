@@ -88,7 +88,7 @@ public class BoardPanel extends JPanel {
 
         if (players == null || players.isEmpty()) return;
 
-        // --- แก้ไขจุดนี้: จัดเรียงลำดับผู้เล่นใหม่ โดยเอา localPlayer (ตัวเรา) ไว้ที่ index 0 เสมอ ---
+        
         List<Player> orderedPlayers = new ArrayList<>();
         if (localPlayer != null && players.contains(localPlayer)) {
             orderedPlayers.add(localPlayer);
@@ -103,18 +103,18 @@ public class BoardPanel extends JPanel {
 
         int totalPlayers = Math.min(orderedPlayers.size(), 4);
 
-        // 2. วาดพื้นที่ผู้เล่นทุกคนตามลำดับที่จัดใหม่
+        
         for (int i = 0; i < totalPlayers; i++) {
             Player p = orderedPlayers.get(i);
             if (p == null) continue;
 
             int px = 20, py = 20;
-            if (i == 0) { px = w / 2 - 225; py = h - 100; }     // ด้านล่าง (ตัวเรา - index 0 เสมอ)
-            else if (i == 1) { px = w / 2 - 225; py = 20; }     // ด้านบน
-            else if (i == 2) { px = 20; py = h / 2 - 50; }     // ด้านซ้าย
-            else if (i == 3) { px = w - 160; py = h / 2 - 50; } // ด้านขวา
+            if (i == 0) { px = w / 2 - 225; py = h - 100; }     
+            else if (i == 1) { px = w / 2 - 225; py = 20; }     
+            else if (i == 2) { px = 20; py = h / 2 - 50; }     
+            else if (i == 3) { px = w - 160; py = h / 2 - 50; } 
 
-            // วาดกล่อง Player Info
+            
             Rectangle pRect = new Rectangle(px, py, 140, 60);
             playerBounds.put(p, pRect);
             g.setColor(selectablePlayers.contains(p) ? Color.YELLOW : Color.WHITE);
@@ -126,7 +126,7 @@ public class BoardPanel extends JPanel {
             g.drawString(p.getUsername() + (!p.isActive() ? " (OUT)" : ""), px + 10, py + 20);
             g.drawString("AP: " + p.getActionPoints() + " | Deck: " + (deck == null ? 0 : deck), px + 10, py + 40);
 
-            // วาดสนามกระดาน 9 ช่องของ Player
+            
             StarCard[] field = p.getField();
             if (field == null) continue;
 
@@ -153,7 +153,7 @@ public class BoardPanel extends JPanel {
                         g.drawRect(sx - 2, sy - 2, sw + 4, sh + 4);
                     }
 
-                    // โหลดและวาดรูปภาพการ์ดดาวลงบนสนาม
+                    
                     String imgPath = ImgPath.get(star.getName());
                     Image cardImg = null;
                     if (imgPath != null) {
@@ -170,7 +170,7 @@ public class BoardPanel extends JPanel {
                     g.setColor(Color.BLACK);
                     g.drawRect(sx, sy, sw, sh);
 
-                    // แสดง HP และสถานะทับด้านบน
+                    
                     g.setColor(Color.RED);
                     g.setFont(new Font("Tahoma", Font.BOLD, 10));
                     g.drawString("HP:" + star.getHp(), sx + 4, sy + 15);

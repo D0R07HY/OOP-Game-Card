@@ -33,7 +33,7 @@ public class Deck {
       cards.push(new NebulaCloak("SP-CLOAK-" + i, ImgPath.nebular_cloak));
     for (int i = 1; i <= 3; i++)
       cards.push(new StellarRegeneration("SP-REGEN-" + i, ImgPath.stallar_regenneration));
-    for (int i = 1; i <= 2; i++)
+    for (int i = 1; i <= 4; i++)
       cards.push(new SpaceProbe("SP-PROBE-" + i, ImgPath.space_prode));
     for (int i = 1; i <= 1; i++)
       cards.push(new WormHole("SP-WORM-" + i, ImgPath.worm_hole));
@@ -43,7 +43,7 @@ public class Deck {
     cards.push(new BlackHole("SP-BLACKHOLE-1", ImgPath.Black_hole));
   }
 
-  // helper: เพิ่มดาวชนิดเดียวกันหลายใบ แต่ id ต้องไม่ซ้ำเพราะ client ใช้ id สั่ง PLAY
+  
   private void addStars(String code, String name, int hp, String image, int count, int orbit) {
     for (int i = 1; i <= count; i++) {
       cards.push(new StarCard(code + "-" + i, name, hp, image, orbit));

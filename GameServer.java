@@ -306,7 +306,7 @@ public class GameServer implements ServerContext {
             return;
         }
 
-        // ตรวจสอบเงื่อนไขเฉพาะเจาะจงของการ์ดบางใบ
+        
         if (name.equals("Pulsar")) {
             if (owner.isPulsarUsedThisTurn()) {
                 sendError(sender, "PULSAR_ALREADY_USED");
@@ -328,7 +328,7 @@ public class GameServer implements ServerContext {
             }
         }
 
-        // ตรวจสอบความถูกต้องของเป้าหมายตาม TargetType
+        
         if (SpecialCard.TARGET_ENEMY_STAR.equals(targetType)) {
             if (target == null || target == owner || targetStar == null || target.isCloaked(targetStar)) {
                 sendError(sender, "INVALID_TARGET");
