@@ -85,12 +85,6 @@ public class BoardPanel extends JPanel {
         int w = getWidth();
         int h = getHeight();
 
-        // 1. วาด Horizon Zone กลางกระดาน
-        g.setColor(Color.WHITE);
-        g.fillRect(w / 2 - 100, h / 2 - 40, 200, 80);
-        g.setColor(Color.BLACK);
-        g.drawRect(w / 2 - 100, h / 2 - 40, 200, 80);
-        g.drawString("HORIZON ZONE", w / 2 - 45, h / 2 + 5);
 
         if (players == null || players.isEmpty()) return;
 
