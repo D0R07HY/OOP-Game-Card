@@ -16,6 +16,7 @@ public class Player {
     private Deck deck;
     private boolean hasForceField;
     private boolean pulsarUsedThisTurn;
+    private boolean active;
     private Set<StarCard> shieldedStars;
     private Set<StarCard> cloakedStars;
     private Runnable changeListener;
@@ -29,6 +30,7 @@ public class Player {
         this.deck = new Deck();
         this.hasForceField = false;
         this.pulsarUsedThisTurn = false;
+        this.active = true;
         this.shieldedStars = new HashSet<>();
         this.cloakedStars = new HashSet<>();
         this.changeListener = null;
@@ -48,6 +50,14 @@ public class Player {
         this.actionPoints = ACTION_POINTS_PER_TURN;
         this.pulsarUsedThisTurn = false;
         fireStateChanged();
+    }
+
+    public boolean isActive() {
+        return active;
+    }
+
+    public void setActive(boolean active) {
+        this.active = active;
     }
 
     public boolean isPulsarUsedThisTurn() {

@@ -9,8 +9,10 @@ import java.awt.Image;
 import java.awt.Rectangle;
 import java.awt.event.ActionEvent;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.function.Consumer;
 import javax.swing.BorderFactory;
@@ -18,6 +20,7 @@ import javax.swing.ImageIcon;
 import javax.swing.JButton;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
+import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.SwingUtilities;
 
@@ -33,10 +36,14 @@ public class GameWindow extends JFrame {
     private JPanel leftHandPanel;
     private JPanel rightHandPanel;
     private JLabel statusLabel;
+    private JLabel deckLabel;
     private JButton endTurnButton;
 
     private Player myPlayer;
     private List<Player> players;
+    private final Map<Player, Integer> deckCounts = new HashMap<>();
+    private final Map<Player, Integer> handCounts = new HashMap<>();
+    private boolean gameOverAnnounced;
     private GameState gameState;
     private GameClient client;
     private Consumer<Card> onCardSelected;
@@ -106,6 +113,11 @@ public class GameWindow extends JFrame {
         bar.setOpaque(false);
         bar.setBorder(BorderFactory.createEmptyBorder(4, 16, 0, 16));
 
+        deckLabel = new JLabel("เด็คคงเหลือ: -");
+        deckLabel.setFont(new Font("Tahoma", Font.BOLD, 12));
+        deckLabel.setForeground(new Color(120, 30, 30));
+        bar.add(deckLabel, BorderLayout.WEST);
+
         statusLabel = new JLabel("เลือกการ์ดจากมือเพื่อเล่น");
         statusLabel.setFont(new Font("Tahoma", Font.BOLD, 12));
         statusLabel.setForeground(new Color(120, 30, 30));
@@ -125,7 +137,24 @@ public class GameWindow extends JFrame {
 
     public void setMyPlayer(Player player) {
         this.myPlayer = player;
+        updateDeckLabel();
         updateMyHand(player == null ? new ArrayList<>() : player.getHand());
+    }
+
+    private void updateDeckLabel() {
+        if (deckLabel == null) {
+            return;
+        }
+
+        Integer remaining = myPlayer == null ? null : deckCounts.get(myPlayer);
+
+        if (remaining == null && client == null && myPlayer != null) {
+            remaining = myPlayer.getDeck().size();
+        }
+
+        deckLabel.setText(remaining == null
+                ? "เด็คคงเหลือ: -"
+                : "เด็คคงเหลือ: " + remaining + " ใบ");
     }
 
     public Player getMyPlayer() {
@@ -155,6 +184,7 @@ public class GameWindow extends JFrame {
 
     public void setGameClient(GameClient client) {
         this.client = client;
+        updateDeckLabel();
     }
 
     public void updateMyHand(List<Card> hand) {
@@ -221,6 +251,16 @@ public class GameWindow extends JFrame {
             return;
         }
 
+        if (gameState.isGameOver()) {
+            setStatus("เกมจบแล้ว");
+            return;
+        }
+
+        if (!myPlayer.isActive()) {
+            setStatus("คุณแพ้แล้ว — ออกจากเกม (Deck Out)");
+            return;
+        }
+
         if (client != null && gameState.getCurrentPlayer() != myPlayer) {
             setStatus("ยังไม่ถึงเทิร์นของคุณ");
             return;
@@ -261,9 +301,9 @@ public class GameWindow extends JFrame {
         } else if (name.equals("Supernova")) {
             Set<Player> targets = new HashSet<>();
 
-            for (int i = 1; i < players.size(); i++) {
-                if (hasTargetableStar(players.get(i))) {
-                    targets.add(players.get(i));
+            for (Player player : players) {
+                if (player != myPlayer && player.isActive() && hasTargetableStar(player)) {
+                    targets.add(player);
                 }
             }
 
@@ -343,9 +383,9 @@ public class GameWindow extends JFrame {
 
             Set<Player> targets = new HashSet<>();
 
-            for (int i = 1; i < players.size(); i++) {
-                if (!players.get(i).getHand().isEmpty()) {
-                    targets.add(players.get(i));
+            for (Player player : players) {
+                if (player != myPlayer && handCountOf(player) > 0) {
+                    targets.add(player);
                 }
             }
 
@@ -399,6 +439,11 @@ public class GameWindow extends JFrame {
         if (pendingMode == PendingMode.ENEMY_STAR) {
             if (owner == myPlayer) {
                 setStatus("เลือกดาวของคู่แข่ง ไม่ใช่ดาวของตนเอง");
+                return;
+            }
+
+            if (!owner.isActive()) {
+                setStatus("ผู้เล่นนี้หลุดออกจากเกมแล้ว");
                 return;
             }
 
@@ -474,8 +519,13 @@ public class GameWindow extends JFrame {
             return;
         }
 
+        if (!target.isActive()) {
+            setStatus("ผู้เล่นนี้หลุดออกจากเกมแล้ว");
+            return;
+        }
+
         if (pendingCard.getName().equals("Worm Hole")) {
-            if (target.getHand().isEmpty()) {
+            if (handCountOf(target) <= 0) {
                 setStatus("Worm Hole: ผู้เล่นนี้ไม่มีการ์ดในมือ");
                 return;
             }
@@ -675,15 +725,40 @@ public class GameWindow extends JFrame {
         }
     }
 
+    private void showGameOver(Player winner) {
+        if (gameOverAnnounced) {
+            return;
+        }
+
+        gameOverAnnounced = true;
+
+        if (endTurnButton != null) {
+            endTurnButton.setEnabled(false);
+        }
+
+        String message;
+
+        if (winner == null) {
+            message = "เกมจบแล้ว — ไม่มีผู้เล่นเหลืออยู่";
+        } else if (winner == myPlayer) {
+            message = "คุณชนะ!";
+        } else {
+            message = winner.getUsername() + " ชนะ";
+        }
+
+        setStatus(message);
+        JOptionPane.showMessageDialog(this, message, "จบเกม", JOptionPane.INFORMATION_MESSAGE);
+    }
+
     private void refreshAll() {
         if (myPlayer != null) {
             updateMyHand(myPlayer.getHand());
         }
 
         if (players != null) {
-            int topCount = players.size() > 1 ? players.get(1).getHand().size() : 0;
-            int leftCount = players.size() > 2 ? players.get(2).getHand().size() : 0;
-            int rightCount = players.size() > 3 ? players.get(3).getHand().size() : 0;
+            int topCount = players.size() > 1 ? handCountOf(players.get(1)) : 0;
+            int leftCount = players.size() > 2 ? handCountOf(players.get(2)) : 0;
+            int rightCount = players.size() > 3 ? handCountOf(players.get(3)) : 0;
             updateOpponentHands(topCount, leftCount, rightCount);
         }
 
@@ -698,8 +773,10 @@ public class GameWindow extends JFrame {
             return result;
         }
 
-        for (int i = 1; i < players.size(); i++) {
-            Player p = players.get(i);
+        for (Player p : players) {
+            if (p == null || p == myPlayer || !p.isActive()) {
+                continue;
+            }
 
             for (StarCard star : p.getField()) {
                 if (star != null && !p.isCloaked(star)) {
@@ -752,6 +829,20 @@ public class GameWindow extends JFrame {
         return count;
     }
 
+    private int handCountOf(Player player) {
+        if (player == null || !player.isActive()) {
+            return 0;
+        }
+
+        Integer count = handCounts.get(player);
+
+        if (count != null) {
+            return count;
+        }
+
+        return player.getHand().size();
+    }
+
     private Player findOwner(StarCard star) {
         if (players == null) {
             return null;
@@ -777,6 +868,16 @@ public class GameWindow extends JFrame {
             return;
         }
 
+        if (gameState != null && gameState.isGameOver()) {
+            setStatus("เกมจบแล้ว");
+            return;
+        }
+
+        if (!myPlayer.isActive()) {
+            setStatus("คุณแพ้แล้ว — ออกจากเกม (Deck Out)");
+            return;
+        }
+
         cancelPending();
 
         if (client != null) {
@@ -790,11 +891,53 @@ public class GameWindow extends JFrame {
             return;
         }
 
-        myPlayer.resetActionPoints();
         myPlayer.clearExpiredBuffs();
 
+        int discarded = 0;
+
+        while (myPlayer.getHand().size() > Player.MAX_HAND) {
+            Card last = myPlayer.getHand().get(myPlayer.getHand().size() - 1);
+            myPlayer.removeCardFromHand(last);
+            myPlayer.addToDropZone(last);
+            discarded++;
+        }
+
+        Card drawn = myPlayer.getDeck().drawCard();
+
+        if (drawn == null) {
+            if (gameState != null) {
+                gameState.setGameOver(true);
+                gameState.setWinner(null);
+            }
+
+            if (endTurnButton != null) {
+                endTurnButton.setEnabled(false);
+            }
+
+            deckCounts.put(myPlayer, 0);
+            boardPanel.setDeckCounts(deckCounts);
+            updateDeckLabel();
+            refreshAll();
+            setStatus("เด็คหมด — คุณแพ้ (Deck Out)");
+            return;
+        }
+
+        myPlayer.addCardToHand(drawn);
+        myPlayer.resetActionPoints();
+
+        deckCounts.put(myPlayer, myPlayer.getDeck().size());
+        boardPanel.setDeckCounts(deckCounts);
+        updateDeckLabel();
+
         refreshAll();
-        setStatus("เทิร์นใหม่: ได้ 2 AP — คลุม Nebula ของคุณหมดอายุแล้ว");
+
+        String message = "จั่วได้ " + drawn.getName() + " — เทิร์นใหม่: ได้ 2 AP";
+
+        if (discarded > 0) {
+            message += " (ทิ้ง " + discarded + " ใบเพราะมือเกิน 7)";
+        }
+
+        setStatus(message);
     }
 
     private void setStatus(String text) {
@@ -950,7 +1093,12 @@ public class GameWindow extends JFrame {
             }
         }
 
-        int[] handCounts = new int[targetPlayers.size()];
+        int[] handCountsByIndex = new int[targetPlayers.size()];
+        int[] deckCountsByIndex = new int[targetPlayers.size()];
+
+        for (int i = 0; i < deckCountsByIndex.length; i++) {
+            deckCountsByIndex[i] = -1;
+        }
 
         for (String record : playerRecords) {
             String[] parts = record.split(",", -1);
@@ -972,8 +1120,28 @@ public class GameWindow extends JFrame {
             }
 
             player.setActionPoints(parseInt(parts[2], player.getActionPoints()));
-            handCounts[index] = Math.max(0, parseInt(parts[3], player.getHand().size()));
+            player.setActive(parts.length < 7 || !"0".equals(parts[6]));
+            handCountsByIndex[index] = Math.max(0, parseInt(parts[3], player.getHand().size()));
+            deckCountsByIndex[index] = Math.max(0, parseInt(parts[4], -1));
         }
+
+        deckCounts.clear();
+        handCounts.clear();
+
+        for (int i = 0; i < deckCountsByIndex.length; i++) {
+            if (targetPlayers.get(i) == null) {
+                continue;
+            }
+
+            handCounts.put(targetPlayers.get(i), handCountsByIndex[i]);
+
+            if (deckCountsByIndex[i] >= 0) {
+                deckCounts.put(targetPlayers.get(i), deckCountsByIndex[i]);
+            }
+        }
+
+        boardPanel.setDeckCounts(deckCounts);
+        updateDeckLabel();
 
         for (String record : fieldRecords) {
             String[] parts = record.split(",", -1);
@@ -1076,14 +1244,37 @@ public class GameWindow extends JFrame {
                 gameState.setWinner(targetPlayers.get(winnerIndex));
             }
 
-            if (!gameOver && gameState.getCurrentPlayer() != null) {
+            if (gameOver) {
+                showGameOver(gameState.getWinner());
+            } else if (gameState.getCurrentPlayer() != null) {
                 Player current = gameState.getCurrentPlayer();
+                String phaseText = phaseName(gameState.getCurrentPhase());
 
                 if (current == myPlayer) {
-                    setStatus("ถึงเทิร์นของคุณ — AP " + current.getActionPoints());
+                    setStatus("ถึงเทิร์นของคุณ — AP " + current.getActionPoints()
+                            + " (เฟส " + phaseText + ")");
                 } else {
-                    setStatus("รอเทิร์นของ " + current.getUsername());
+                    setStatus("รอเทิร์นของ " + current.getUsername()
+                            + " (เฟส " + phaseText + ")");
                 }
+            }
+
+            if (endTurnButton != null) {
+                boolean canEndTurn = !gameOver && myPlayer != null && myPlayer.isActive();
+
+                if (client != null) {
+                    canEndTurn = canEndTurn && gameState.getCurrentPlayer() == myPlayer;
+                }
+
+                endTurnButton.setEnabled(canEndTurn);
+            }
+
+            if (!gameOver && myPlayer != null && !myPlayer.isActive()) {
+                if (endTurnButton != null) {
+                    endTurnButton.setEnabled(false);
+                }
+
+                setStatus("คุณแพ้แล้ว — เด็คหมด (Deck Out)");
             }
         }
 
@@ -1092,9 +1283,9 @@ public class GameWindow extends JFrame {
         }
 
         if (targetPlayers.size() >= 2) {
-            int topCount = handCounts[1];
-            int leftCount = targetPlayers.size() > 2 ? handCounts[2] : 0;
-            int rightCount = targetPlayers.size() > 3 ? handCounts[3] : 0;
+            int topCount = handCountsByIndex[1];
+            int leftCount = targetPlayers.size() > 2 ? handCountsByIndex[2] : 0;
+            int rightCount = targetPlayers.size() > 3 ? handCountsByIndex[3] : 0;
             updateOpponentHands(topCount, leftCount, rightCount);
         }
 
@@ -1108,6 +1299,18 @@ public class GameWindow extends JFrame {
         } catch (NumberFormatException e) {
             return fallback;
         }
+    }
+
+    private static String phaseName(int phase) {
+        if (phase == 1) {
+            return "จั่ว";
+        }
+
+        if (phase == 3) {
+            return "จบ";
+        }
+
+        return "เล่น";
     }
 
     public BoardPanel getBoardPanel() {
@@ -1142,25 +1345,25 @@ public class GameWindow extends JFrame {
 
         me.placeStar(star("Earth", 5, 3));
 
-        StarCard damagedMars = star("Mars", 4, 4);
-        damagedMars.takeDamage(3);
+        StarCard damagedMars = star("Mars", 3, 4);
+        damagedMars.takeDamage(2);
         me.placeStar(damagedMars);
 
-        me.placeStar(star("Jupiter", 4, 2));
+        me.placeStar(star("Jupiter", 1, 2));
 
         north.placeStar(star("Venus", 2, 1));
-        north.placeStar(star("Saturn", 4, 5));
+        north.placeStar(star("Saturn", 1, 5));
 
-        west.placeStar(star("Mercury", 1, 0));
-        west.placeStar(star("Uranus", 3, 6));
+        west.placeStar(star("Mercury", 3, 0));
+        west.placeStar(star("Uranus", 1, 6));
 
-        east.placeStar(star("Neptune", 3, 7));
-        east.placeStar(star("The Sun", 5, 8));
+        east.placeStar(star("Neptune", 2, 7));
+        east.placeStar(star("The Sun", 3, 8));
 
-        me.addToDropZone(star("The Sun", 5, 8));
+        me.addToDropZone(star("The Sun", 3, 8));
 
-        me.addCardToHand(star("Neptune", 3, 0));
-        me.addCardToHand(star("Mercury", 1, 1));
+        me.addCardToHand(star("Neptune", 2, 0));
+        me.addCardToHand(star("Mercury", 3, 1));
         me.addCardToHand(new MeteorStrike("DEMO-METEOR", ImgPath.get("Meteor Strike")));
         me.addCardToHand(new Supernova("DEMO-SUPERNOVA", ImgPath.get("Super Nova")));
         me.addCardToHand(new Pulsar("DEMO-PULSAR", ImgPath.get("Pulsar")));
@@ -1178,14 +1381,14 @@ public class GameWindow extends JFrame {
         north.addCardToHand(new SpaceProbe("NOVA-PROBE", ImgPath.get("Space Probe")));
         north.addCardToHand(new ForceField("NOVA-FORCE", ImgPath.get("Force Field")));
 
-        west.addCardToHand(star("Mercury", 1, 0));
-        west.addCardToHand(star("Mars", 4, 1));
+        west.addCardToHand(star("Mercury", 3, 0));
+        west.addCardToHand(star("Mars", 3, 1));
         west.addCardToHand(new Supernova("ORBIT-SUPERNOVA", ImgPath.get("Super Nova")));
         west.addCardToHand(new NebulaCloak("ORBIT-CLOAK", ImgPath.get("Nebula Cloak")));
         west.addCardToHand(new StellarRegeneration("ORBIT-REGEN", ImgPath.get("Stellar Regeneration")));
 
-        east.addCardToHand(star("Neptune", 3, 0));
-        east.addCardToHand(star("Jupiter", 4, 1));
+        east.addCardToHand(star("Neptune", 2, 0));
+        east.addCardToHand(star("Jupiter", 1, 1));
         east.addCardToHand(new Pulsar("COMET-PULSAR", ImgPath.get("Pulsar")));
         east.addCardToHand(new WormHole("COMET-WORM", ImgPath.get("Worm Hole")));
         east.addCardToHand(new BigBang("COMET-BIGBANG", ImgPath.get("Big Bang")));
@@ -1196,7 +1399,14 @@ public class GameWindow extends JFrame {
         players.add(west);
         players.add(east);
 
+        deckCounts.clear();
+
+        for (Player player : players) {
+            deckCounts.put(player, player.getDeck().size());
+        }
+
         setPlayers(players);
+        boardPanel.setDeckCounts(deckCounts);
         setMyPlayer(me);
         gameState = new GameState(players);
 

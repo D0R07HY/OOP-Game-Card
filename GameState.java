@@ -55,14 +55,50 @@ public class GameState {
     }
 
     public void nextTurn() {
-        if (isGameOver) return;
+        if (isGameOver || players == null || players.isEmpty()) return;
 
-        currentPlayerIndex = (currentPlayerIndex + 1) % players.size();
-        currentPhase = 1;
-        Player nextPlayer = getCurrentPlayer();
-        if (nextPlayer != null)
-            nextPlayer.resetActionPoints();
-        fireStateChanged();
+        // ข้ามผู้เล่นที่หลุดออกจากเกมแล้ว
+        for (int step = 0; step < players.size(); step++) {
+            currentPlayerIndex = (currentPlayerIndex + 1) % players.size();
+            Player nextPlayer = getCurrentPlayer();
+
+            if (nextPlayer != null && nextPlayer.isActive()) {
+                currentPhase = 1;
+                nextPlayer.resetActionPoints();
+                fireStateChanged();
+                return;
+            }
+        }
+    }
+
+    public int getActivePlayerCount() {
+        if (players == null) {
+            return 0;
+        }
+
+        int count = 0;
+
+        for (Player player : players) {
+            if (player != null && player.isActive()) {
+                count++;
+            }
+        }
+
+        return count;
+    }
+
+    public Player getFirstActivePlayer() {
+        if (players == null) {
+            return null;
+        }
+
+        for (Player player : players) {
+            if (player != null && player.isActive()) {
+                return player;
+            }
+        }
+
+        return null;
     }
 
 
@@ -179,7 +215,8 @@ public class GameState {
                     .append(player.getActionPoints()).append(",")
                     .append(player.getHand().size()).append(",")
                     .append(player.getDeck().size()).append(",")
-                    .append(player.getDropZone().size());
+                    .append(player.getDropZone().size()).append(",")
+                    .append(player.isActive() ? "1" : "0");
 
             StarCard[] field = player.getField();
 

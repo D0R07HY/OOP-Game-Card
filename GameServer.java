@@ -121,6 +121,7 @@ public class GameServer implements ServerContext {
                 List<Player> players = buildPlayerList();
                 dealOpeningHands(players);
                 gameState = new GameState(players);
+                startTurn(gameState.getCurrentPlayer());
                 gameState.addChangeListener(this::broadcastState);
 
                 StringBuilder start = new StringBuilder("SYSTEM#GAME_START");
@@ -149,8 +150,21 @@ public class GameServer implements ServerContext {
                     break;
                 }
 
-                gameState.getCurrentPlayer().clearExpiredBuffs();
+                Player current = gameState.getCurrentPlayer();
+
+                // End Phase: เช็คชนะ -> เช็ค Hand Limit -> สลับเทิร์น
+                // บัฟที่หมดอายุ (Nebula Cloak) จะถูกลบตอนเริ่มเทิร์นถัดไปของเจ้าของ
+                // เพื่อให้ยังมีผลตลอดเทิร์นของคู่แข่งตามกติกาการ์ด
+                gameState.setCurrentPhase(3);
+
+                if (gameState.checkWinCondition(current)) {
+                    break;
+                }
+
+                enforceHandLimit(current);
+
                 gameState.nextTurn();
+                startTurn(gameState.getCurrentPlayer());
                 broadcastState();
                 break;
 
@@ -175,6 +189,11 @@ public class GameServer implements ServerContext {
 
         if (owner == null) {
             sendError(sender, "INVALID_PLAYER");
+            return;
+        }
+
+        if (!owner.isActive()) {
+            sendError(sender, "PLAYER_INACTIVE");
             return;
         }
 
@@ -289,6 +308,11 @@ public class GameServer implements ServerContext {
     private void playSpecial(ClientHandler sender, Player owner, SpecialCard card,
                              Player target, StarCard targetStar, Card cost) {
         String name = card.getName();
+
+        if (target != null && !target.isActive()) {
+            sendError(sender, "INVALID_TARGET");
+            return;
+        }
 
         if (name.equals("Meteor Strike")) {
             if (target == null || target == owner || targetStar == null) {
@@ -469,13 +493,91 @@ public class GameServer implements ServerContext {
         }
     }
 
+    // Draw Phase: จั่ว 1 ใบอัตโนมัติ; ถ้าเด็คหมดผู้เล่นคนนั้นแพ้ทันที (Deck Out)
+    private boolean startTurn(Player player) {
+        if (player == null || gameState == null) {
+            return false;
+        }
+
+        gameState.setCurrentPhase(1);
+
+        // เริ่มเทิร์นของเจ้าของ: บัฟป้องกันที่หมดอายุแล้ว (Nebula Cloak)
+        // ถูกลบตรงนี้ เพื่อให้ cloak ยังมีผลตลอดเทิร์นของคู่แข่งก่อนหน้า
+        player.clearExpiredBuffs();
+
+        Card card = player.getDeck().drawCard();
+
+        if (card != null) {
+            player.addCardToHand(card);
+            gameState.setCurrentPhase(2);
+            return true;
+        }
+
+        player.setActive(false);
+
+        if (gameState.getActivePlayerCount() <= 1) {
+            gameState.setWinner(gameState.getFirstActivePlayer());
+            gameState.setGameOver(true);
+            return false;
+        }
+
+        gameState.nextTurn();
+        return startTurn(gameState.getCurrentPlayer());
+    }
+
+    // End Phase: มือเกิน 7 ใบ บังคับทิ้งใบล่าสุดลง Drop Zone จนเหลือ 7
+    private void enforceHandLimit(Player player) {
+        if (player == null) {
+            return;
+        }
+
+        int discarded = 0;
+
+        while (player.getHand().size() > Player.MAX_HAND) {
+            Card card = player.getHand().get(player.getHand().size() - 1);
+            player.removeCardFromHand(card);
+            player.addToDropZone(card);
+            discarded++;
+        }
+
+        if (discarded > 0) {
+            sendToPlayer(player, "SYSTEM#มือเกิน 7 ใบ: ทิ้ง " + discarded
+                    + " ใบลง Drop Zone");
+        }
+    }
+
+    private void sendToPlayer(Player player, String message) {
+        for (ClientHandler client : clients) {
+            if (client.getPlayer() == player) {
+                client.sendMessage(message);
+                return;
+            }
+        }
+    }
+
     @Override
     public synchronized void removeClient(ClientHandler handler) {
         clients.remove(handler);
 
-        if (handler.getPlayer() != null) {
-            System.out.println("[Server] Player " + handler.getPlayer().getUsername() + " left the room");
-            broadcast("SYSTEM#" + handler.getPlayer().getUsername() + "_LEFT");
+        Player player = handler.getPlayer();
+
+        if (player != null) {
+            System.out.println("[Server] Player " + player.getUsername() + " left the room");
+            broadcast("SYSTEM#" + player.getUsername() + "_LEFT");
+
+            if (gameState != null && gameState.getPlayers().contains(player)) {
+                player.setActive(false);
+
+                if (gameState.getActivePlayerCount() <= 1) {
+                    gameState.setWinner(gameState.getFirstActivePlayer());
+                    gameState.setGameOver(true);
+                } else if (gameState.getCurrentPlayer() == player) {
+                    gameState.nextTurn();
+                    startTurn(gameState.getCurrentPlayer());
+                }
+
+                broadcastState();
+            }
         }
 
         if (gameState == null) {

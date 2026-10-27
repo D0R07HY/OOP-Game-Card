@@ -28,6 +28,7 @@ public class BoardPanel extends JPanel {
     private Timer dropZoneTimer;
 
     private List<Player> players;
+    private Map<Player, Integer> deckCounts;
     private final Map<String, Image> imageCache;
     private final Map<StarCard, Rectangle> starBounds;
     private final Map<Player, Rectangle> playerBounds;
@@ -40,6 +41,7 @@ public class BoardPanel extends JPanel {
         setOpaque(true);
 
         this.players = new ArrayList<>();
+        this.deckCounts = new HashMap<>();
         this.imageCache = new HashMap<>();
         this.starBounds = new HashMap<>();
         this.playerBounds = new HashMap<>();
@@ -404,6 +406,24 @@ public class BoardPanel extends JPanel {
         g2.setFont(new Font("Comic Sans MS", Font.PLAIN, 11));
         g2.drawString("AP " + p.getActionPoints() + "   STARS " + stars + "/9", x + 56, y + 44);
 
+        Integer remaining = deckCounts.get(p);
+
+        if (remaining != null) {
+            g2.setFont(new Font("Comic Sans MS", Font.PLAIN, 10));
+            g2.drawString("DECK " + remaining, x + 56, y + 57);
+        }
+
+        if (!p.isActive()) {
+            g2.setColor(new Color(255, 255, 255, 210));
+            g2.fillRect(x, y, w, h);
+
+            g2.setColor(new Color(120, 30, 30));
+            g2.setFont(new Font("Comic Sans MS", Font.BOLD, 16));
+            FontMetrics leftMetrics = g2.getFontMetrics();
+            g2.drawString("OUT", x + (w - leftMetrics.stringWidth("OUT")) / 2,
+                    y + (h - leftMetrics.getHeight()) / 2 + leftMetrics.getAscent());
+        }
+
         Rectangle bounds = new Rectangle(x, y, w, h);
         playerBounds.put(p, bounds);
 
@@ -488,6 +508,11 @@ public class BoardPanel extends JPanel {
 
     public void setPlayers(List<Player> players) {
         this.players = (players == null) ? new ArrayList<>() : players;
+        repaint();
+    }
+
+    public void setDeckCounts(Map<Player, Integer> deckCounts) {
+        this.deckCounts = (deckCounts == null) ? new HashMap<>() : deckCounts;
         repaint();
     }
 
