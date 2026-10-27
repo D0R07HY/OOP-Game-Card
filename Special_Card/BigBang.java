@@ -16,11 +16,19 @@ public class BigBang extends SpecialCard
 
         Card sun = owner.takeFromDropZone("The Sun");
 
+        if (sun == null) 
+            {
+                sun = owner.getDeck().searchAndRemove("The Sun");
+            }
+
         if (sun != null) 
             {
                 if (sun instanceof StarCard) 
                     {
-                        if (!owner.placeStar((StarCard) sun)) 
+                        StarCard sunStar = (StarCard) sun;
+                        int pos = sunStar.getOrbitPosition();
+
+                        if (pos < 0 || pos >= owner.getField().length || !owner.placeStar(sunStar)) 
                             {
                                 owner.addToDropZone(sun);
                             }
@@ -30,8 +38,6 @@ public class BigBang extends SpecialCard
                         owner.addToDropZone(sun);
                     }
             }
-
-        // TODO: ค้นหา "The Sun" จากกองการ์ดยังทำไม่ได้ เพราะ Deck ไม่มีเมธอดค้นหา
 
         for (StarCard star : owner.getField()) 
             {

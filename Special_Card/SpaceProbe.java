@@ -9,7 +9,21 @@ public class SpaceProbe extends SpecialCard
     @Override
     public void playEffect(Player owner, Player target, StarCard targetStar, GameState state) 
     {
-        // TODO: ยังเขียนไม่ได้ — Deck ยังไม่มีเมธอด drawCard()
-        // เมื่อมีแล้วจึงวนจั่ว 2 ใบด้วย owner.getDeck().drawCard() และ owner.addCardToHand(...)
+        if (owner == null) 
+            {
+                return;
+            }
+
+        for (int i = 0; i < 2; i++) 
+            {
+                Card drawn = owner.getDeck().drawCard();
+
+                if (drawn == null) 
+                    {
+                        break;
+                    }
+
+                owner.addCardToHand(drawn);
+            }
     }
 }

@@ -9,7 +9,17 @@ public class Pulsar extends SpecialCard
     @Override
     public void playEffect(Player owner, Player target, StarCard targetStar, GameState state) 
     {
-        if (owner == null || target == null || targetStar == null) 
+        if (owner == null || owner.getHand().isEmpty()) 
+            {
+                return;
+            }
+
+        playEffect(owner, target, targetStar, owner.getHand().get(0), state);
+    }
+
+    public void playEffect(Player owner, Player target, StarCard targetStar, Card cost, GameState state) 
+    {
+        if (owner == null || target == null || targetStar == null || cost == null) 
             {
                 return;
             }
@@ -30,12 +40,12 @@ public class Pulsar extends SpecialCard
                 return;
             }
 
-        if (owner.getHand().isEmpty()) 
+        if (!owner.getHand().contains(cost)) 
             {
                 return;
             }
 
-        Card cost = owner.getHand().remove(0);
+        owner.getHand().remove(cost);
         owner.addToDropZone(cost);
 
         target.removeStarFromField(targetStar);

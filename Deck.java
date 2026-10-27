@@ -17,4 +17,31 @@ public class Deck {
     if (this.cards != null && !this.cards.isEmpty())
       Collections.shuffle(this.cards);
   }
+
+  public boolean isEmpty() {
+    return cards.isEmpty();
+  }
+
+  public int size() {
+    return cards.size();
+  }
+
+  public Card drawCard() {
+    if (cards.isEmpty()) {
+      return null;
+    }
+    return cards.pop();
+  }
+
+  public Card searchAndRemove(String name) {
+    if (name == null) {
+      return null;
+    }
+    for (int i = 0; i < cards.size(); i++) {
+      if (name.equals(cards.get(i).getName())) {
+        return cards.remove(i);
+      }
+    }
+    return null;
+  }
 }

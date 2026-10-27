@@ -13,20 +13,40 @@ public class WormHole extends SpecialCard
     @Override
     public void playEffect(Player owner, Player target, StarCard targetStar, GameState state) 
     {
-        if (owner == null || target == null) 
+        if (owner == null || owner.getHand().isEmpty()) 
             {
                 return;
             }
 
-        if (owner.getHand().isEmpty() || target.getHand().isEmpty()) 
+        playEffect(owner, target, owner.getHand().get(0), state);
+    }
+
+    public void playEffect(Player owner, Player target, Card giveCard, GameState state) 
+    {
+        if (owner == null || target == null || giveCard == null) 
+            {
+                return;
+            }
+
+        if (owner == target) 
+            {
+                return;
+            }
+
+        if (!owner.getHand().contains(giveCard)) 
+            {
+                return;
+            }
+
+        if (target.getHand().isEmpty()) 
             {
                 return;
             }
 
         Card taken = target.getHand().remove(RANDOM.nextInt(target.getHand().size()));
-        Card given = owner.getHand().remove(0);
+        owner.getHand().remove(giveCard);
 
         owner.addCardToHand(taken);
-        target.addCardToHand(given);
+        target.addCardToHand(giveCard);
     }
 }

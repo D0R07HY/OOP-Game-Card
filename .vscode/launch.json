@@ -6,6 +6,13 @@
     "configurations": [
         {
             "type": "java",
+            "name": "GameWindow",
+            "request": "launch",
+            "mainClass": "GameWindow",
+            "projectName": "OOP-Game-Card_d13df869"
+        },
+        {
+            "type": "java",
             "name": "Current File",
             "request": "launch",
             "mainClass": "${file}"
