@@ -19,7 +19,7 @@ public class Pulsar extends SpecialCard
                 return;
             }
 
-        if (owner.hasUsedPulsarThisTurn()) 
+        if (owner.isPulsarUsedThisTurn()) 
             {
                 return;
             }
@@ -55,6 +55,5 @@ public class Pulsar extends SpecialCard
 
         target.removeStarFromField(targetStar);
         target.addToDropZone(targetStar);
-        owner.markPulsarUsed();
     }
 }

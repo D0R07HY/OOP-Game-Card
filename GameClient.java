@@ -1,11 +1,8 @@
 import java.io.*;
 import java.net.Socket;
-<<<<<<< HEAD
-import javax.swing.SwingUtilities;
-=======
 import java.nio.charset.StandardCharsets;
 import java.util.function.Consumer;
->>>>>>> ce10ad5fbe026dc001290b60a89f17b1836dee54
+import javax.swing.SwingUtilities;
 
 public class GameClient {
     private Socket sk;
@@ -50,17 +47,11 @@ public class GameClient {
                 String line;
                 while ((line = in.readLine()) != null) {
                     System.out.println("[Server] " + line);
-<<<<<<< HEAD
-                    String message = line;
-
-                    if (ui != null) {
-                        SwingUtilities.invokeLater(() -> ui.updateBoardState(message));
-=======
                     if (onMessage != null) {
                         onMessage.accept(line);
                     } else if (ui != null) {
-                        ui.updateBoardState(line);
->>>>>>> ce10ad5fbe026dc001290b60a89f17b1836dee54
+                        String message = line;
+                        SwingUtilities.invokeLater(() -> ui.updateBoardState(message));
                     }
                 }
             } catch (IOException e) {

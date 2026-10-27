@@ -6,7 +6,6 @@ import java.awt.FlowLayout;
 import java.awt.Font;
 import java.awt.GraphicsEnvironment;
 import java.awt.Image;
-<<<<<<< HEAD
 import java.awt.Rectangle;
 import java.awt.event.ActionEvent;
 import java.util.ArrayList;
@@ -21,11 +20,6 @@ import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.SwingUtilities;
-=======
-import java.util.*;
-import java.util.function.Consumer;
-import javax.swing.*;
->>>>>>> ce10ad5fbe026dc001290b60a89f17b1836dee54
 
 public class GameWindow extends JFrame {
 
@@ -111,12 +105,12 @@ public class GameWindow extends JFrame {
         bar.setOpaque(false);
         bar.setBorder(BorderFactory.createEmptyBorder(4, 16, 0, 16));
 
-        statusLabel = new JLabel("เลือกการ์ดจากมือเพื่อเล่น");
+        statusLabel = new JLabel("Select a card from your hand");
         statusLabel.setFont(new Font("Tahoma", Font.BOLD, 12));
         statusLabel.setForeground(new Color(120, 30, 30));
         bar.add(statusLabel, BorderLayout.CENTER);
 
-        endTurnButton = new JButton("จบเทิร์น");
+        endTurnButton = new JButton("End Turn");
         endTurnButton.setFont(new Font("Tahoma", Font.PLAIN, 12));
         endTurnButton.addActionListener(this::onEndTurn);
         bar.add(endTurnButton, BorderLayout.EAST);
@@ -185,28 +179,7 @@ public class GameWindow extends JFrame {
                 cardBtn.setToolTipText(card.getName());
                 cardBtn.setSelected(card == pendingCard);
 
-<<<<<<< HEAD
                 cardBtn.setOnClick(() -> handleHandCardClick(card));
-=======
-                cardBtn.setOnClick(() -> {
-                    System.out.println("[UI] Card clicked: " + card.getName());
-
-                    if (myPlayer != null && myPlayer.getHand().contains(card)) {
-                        myPlayer.removeCardFromHand(card);
-                    }
-
-                    boardPanel.playCardToDropZone(card, img);
-
-                    if (myPlayer != null) {
-                        updateMyHand(myPlayer.getHand());
-                    }
-
-                    if (onCardSelected != null) {
-                        onCardSelected.accept(card);
-                    }
-                });
-
->>>>>>> ce10ad5fbe026dc001290b60a89f17b1836dee54
                 myHandPanel.add(cardBtn);
             }
         }
@@ -216,7 +189,7 @@ public class GameWindow extends JFrame {
     }
 
     private void handleHandCardClick(Card card) {
-        System.out.println("[UI] กดการ์ด: " + card.getName());
+        System.out.println("[UI] Card clicked: " + card.getName());
 
         if (pendingMode == PendingMode.COST_CARD) {
             resolveCostCard(card);
@@ -225,7 +198,7 @@ public class GameWindow extends JFrame {
 
         if (pendingCard == card) {
             cancelPending();
-            setStatus("ยกเลิกการเลือกการ์ดแล้ว");
+            setStatus("Card selection cancelled");
             return;
         }
 
@@ -238,7 +211,7 @@ public class GameWindow extends JFrame {
 
     private void startCardPlay(Card card) {
         if (myPlayer == null || gameState == null || players == null) {
-            setStatus("ยังไม่มีเกมที่พร้อมเล่น");
+            setStatus("No active game yet");
             return;
         }
 
@@ -258,7 +231,7 @@ public class GameWindow extends JFrame {
         }
 
         if (!(card instanceof SpecialCard)) {
-            setStatus("ไม่รู้จักชนิดการ์ดนี้: " + card.getName());
+            setStatus("Unknown card type: " + card.getName());
             return;
         }
 
@@ -268,12 +241,12 @@ public class GameWindow extends JFrame {
             Set<StarCard> targets = enemyStars();
 
             if (targets.isEmpty()) {
-                setStatus("Meteor Strike: ไม่มีดาวคู่แข่งที่เลือกได้");
+                setStatus("Meteor Strike: no enemy star can be targeted");
                 return;
             }
 
             beginTargeting(card, PendingMode.ENEMY_STAR, targets, null,
-                    "Meteor Strike: เลือกดาวของคู่แข่ง 1 ดวง (ดาเมจ 2)");
+                    "Meteor Strike: choose 1 enemy star (2 damage)");
         } else if (name.equals("Supernova")) {
             Set<Player> targets = new HashSet<>();
 
@@ -284,76 +257,76 @@ public class GameWindow extends JFrame {
             }
 
             if (targets.isEmpty()) {
-                setStatus("Supernova: ไม่มีผู้เล่นเป้าหมายที่เลือกได้");
+                setStatus("Supernova: no target player available");
                 return;
             }
 
             beginTargeting(card, PendingMode.ENEMY_PLAYER, null, targets,
-                    "Supernova: เลือกผู้เล่นเป้าหมาย (ดาเมจทุกดาว 1)");
+                    "Supernova: choose a target player (1 damage to all stars)");
         } else if (name.equals("Pulsar")) {
             if (myPlayer.isPulsarUsedThisTurn()) {
-                setStatus("Pulsar ใช้ได้ 1 ครั้งต่อเทิร์นเท่านั้น");
+                setStatus("Pulsar can be used only once per turn");
                 return;
             }
 
             if (otherHandCardCount(card) == 0) {
-                setStatus("Pulsar: ต้องมีการ์ดอีก 1 ใบในมือเพื่อทิ้งเป็นค่าการใช้");
+                setStatus("Pulsar: you need 1 more card in hand to discard as cost");
                 return;
             }
 
             Set<StarCard> targets = enemyStars();
 
             if (targets.isEmpty()) {
-                setStatus("Pulsar: ไม่มีดาวคู่แข่งที่เลือกได้");
+                setStatus("Pulsar: no enemy star can be targeted");
                 return;
             }
 
             beginTargeting(card, PendingMode.ENEMY_STAR, targets, null,
-                    "Pulsar: เลือกดาวคู่แข่งที่จะทำลาย");
+                    "Pulsar: choose an enemy star to destroy");
         } else if (name.equals("Force Field")) {
             Set<StarCard> targets = ownStars();
 
             if (targets.isEmpty()) {
-                setStatus("Force Field: คุณยังไม่มีดาวบนสนาม");
+                setStatus("Force Field: you have no stars on the field");
                 return;
             }
 
             beginTargeting(card, PendingMode.ALLY_STAR, targets, null,
-                    "Force Field: เลือกดาวของตนเองเพื่อติดโล่ 1 ครั้ง");
+                    "Force Field: choose your star to gain 1 shield");
         } else if (name.equals("Nebula Cloak")) {
             Set<StarCard> targets = ownStars();
 
             if (targets.isEmpty()) {
-                setStatus("Nebula Cloak: คุณยังไม่มีดาวบนสนาม");
+                setStatus("Nebula Cloak: you have no stars on the field");
                 return;
             }
 
             beginTargeting(card, PendingMode.ALLY_STAR, targets, null,
-                    "Nebula Cloak: เลือกดาวของตนเองเพื่อซ่อนจากเป้าหมายโจมตี");
+                    "Nebula Cloak: choose your star to hide it from attacks");
         } else if (name.equals("Stellar Regeneration")) {
             Set<StarCard> targets = ownStars();
 
             if (targets.isEmpty()) {
-                setStatus("Stellar Regeneration: คุณยังไม่มีดาวบนสนาม");
+                setStatus("Stellar Regeneration: you have no stars on the field");
                 return;
             }
 
             beginTargeting(card, PendingMode.ALLY_STAR, targets, null,
-                    "Stellar Regeneration: เลือกดาวของตนเองเพื่อฟื้นฟู 3 HP");
+                    "Stellar Regeneration: choose your star to restore 3 HP");
         } else if (name.equals("Space Probe")) {
-            playNoTarget(card, "Space Probe: จั่วการ์ด 2 ใบ");
+            playNoTarget(card, "Space Probe: draw 2 cards");
         } else if (name.equals("Big Bang")) {
-            playNoTarget(card, "Big Bang: นำ The Sun ลงสนามและฟื้นฟู HP ดาวทุกดวง");
+            playNoTarget(card, "Big Bang: place The Sun and fully heal all your stars");
         } else if (name.equals("Black Hole")) {
             if (gameState.isBlackHoleUsed()) {
-                setStatus("Black Hole ถูกใช้ไปแล้วในเกมนี้");
+                setStatus("Black Hole has already been used this game");
                 return;
             }
 
-            playNoTarget(card, "Black Hole: ทำลายดาวทุกดวงบนสนาม");
+            playNoTarget(card, "Black Hole: destroy all stars on the field");
         } else if (name.equals("Worm Hole")) {
             if (otherHandCardCount(card) == 0) {
-                setStatus("Worm Hole: ต้องมีการ์ดอีก 1 ใบในมือเพื่อใช้แลก");
+                setStatus("Worm Hole: you need 1 more card in hand to trade");
                 return;
             }
 
@@ -366,14 +339,14 @@ public class GameWindow extends JFrame {
             }
 
             if (targets.isEmpty()) {
-                setStatus("Worm Hole: ไม่มีคู่แข่งที่มีการ์ดในมือให้แลก");
+                setStatus("Worm Hole: no opponent has a card to trade");
                 return;
             }
 
             beginTargeting(card, PendingMode.ENEMY_PLAYER, null, targets,
-                    "Worm Hole: เลือกผู้เล่นเป้าหมายที่จะแลกการ์ด");
+                    "Worm Hole: choose a target player to trade with");
         } else {
-            setStatus("ยังไม่ได้เชื่อม Logic ของการ์ด: " + name);
+            setStatus("Card logic is not connected yet: " + name);
         }
     }
 
@@ -414,14 +387,14 @@ public class GameWindow extends JFrame {
 
         if (pendingMode == PendingMode.ENEMY_STAR) {
             if (owner == myPlayer) {
-                setStatus("เลือกดาวของคู่แข่ง ไม่ใช่ดาวของตนเอง");
+                setStatus("Choose an enemy star, not your own");
                 return;
             }
 
             if (pendingCard.getName().equals("Pulsar")) {
                 if (otherHandCardCount(pendingCard) == 0) {
                     cancelPending();
-                    setStatus("Pulsar: ไม่มีการ์ดใบอื่นให้ทิ้งแล้ว");
+                    setStatus("Pulsar: no other card available to discard");
                     return;
                 }
 
@@ -430,28 +403,28 @@ public class GameWindow extends JFrame {
                 pendingMode = PendingMode.COST_CARD;
                 boardPanel.clearSelectable();
                 updateMyHand(myPlayer.getHand());
-                setStatus("Pulsar: เลือกการ์ดอีก 1 ใบในมือเพื่อทิ้งเป็นค่าการใช้");
+                setStatus("Pulsar: choose 1 more card in hand to discard as cost");
                 return;
             }
 
             if (!myPlayer.useActionPoint(1)) {
                 cancelPending();
-                setStatus("AP ไม่พอสำหรับเล่นการ์ด");
+                setStatus("Not enough AP to play this card");
                 return;
             }
 
             pendingCard.playEffect(myPlayer, owner, star, gameState);
             finishPlay(pendingCard, "Meteor Strike: " + star.getName()
-                    + " ของ " + owner.getUsername() + " ถูกโจมตี");
+                    + " of " + owner.getUsername() + " was attacked");
         } else if (pendingMode == PendingMode.ALLY_STAR) {
             if (owner != myPlayer) {
-                setStatus("เลือกดาวของตนเองเท่านั้น");
+                setStatus("Choose your own star only");
                 return;
             }
 
             if (!myPlayer.useActionPoint(1)) {
                 cancelPending();
-                setStatus("AP ไม่พอสำหรับเล่นการ์ด");
+                setStatus("Not enough AP to play this card");
                 return;
             }
 
@@ -459,13 +432,13 @@ public class GameWindow extends JFrame {
             pendingCard.playEffect(myPlayer, myPlayer, star, gameState);
 
             if (cardName.equals("Stellar Regeneration")) {
-                finishPlay(pendingCard, "Stellar Regeneration: ฟื้นฟู " + star.getName()
+                finishPlay(pendingCard, "Stellar Regeneration: restored " + star.getName()
                         + " เป็น " + star.getHp() + "/" + star.getMaxHp());
             } else if (cardName.equals("Force Field")) {
-                finishPlay(pendingCard, "Force Field: " + star.getName() + " ได้รับโล่ 1 ครั้ง");
+                finishPlay(pendingCard, "Force Field: " + star.getName() + " gained 1 shield");
             } else {
                 finishPlay(pendingCard, "Nebula Cloak: " + star.getName()
-                        + " ถูกซ่อนจนถึงเทิร์นถัดไป");
+                        + " is hidden until your next turn");
             }
         } else if (pendingMode == PendingMode.ENEMY_PLAYER) {
             handlePlayerClick(owner);
@@ -478,13 +451,13 @@ public class GameWindow extends JFrame {
         }
 
         if (target == myPlayer) {
-            setStatus("เลือกผู้เล่นคู่แข่งเท่านั้น");
+            setStatus("Choose an opponent only");
             return;
         }
 
         if (pendingCard.getName().equals("Worm Hole")) {
             if (target.getHand().isEmpty()) {
-                setStatus("Worm Hole: ผู้เล่นนี้ไม่มีการ์ดในมือ");
+                setStatus("Worm Hole: this player has no cards in hand");
                 return;
             }
 
@@ -492,7 +465,7 @@ public class GameWindow extends JFrame {
             pendingMode = PendingMode.COST_CARD;
             boardPanel.clearSelectable();
             updateMyHand(myPlayer.getHand());
-            setStatus("Worm Hole: เลือกการ์ดในมือ 1 ใบเพื่อแลกกับ "
+            setStatus("Worm Hole: choose 1 card in hand to trade with "
                     + target.getUsername());
             return;
         }
@@ -500,13 +473,13 @@ public class GameWindow extends JFrame {
         if (pendingCard.getName().equals("Supernova")) {
             if (!myPlayer.useActionPoint(1)) {
                 cancelPending();
-                setStatus("AP ไม่พอสำหรับเล่นการ์ด");
+                setStatus("Not enough AP to play this card");
                 return;
             }
 
             pendingCard.playEffect(myPlayer, target, null, gameState);
-            finishPlay(pendingCard, "Supernova: ดาวทุกดวงของ "
-                    + target.getUsername() + " เสีย HP 1");
+                finishPlay(pendingCard, "Supernova: all stars of "
+                    + target.getUsername() + " lost 1 HP");
         }
     }
 
@@ -517,7 +490,7 @@ public class GameWindow extends JFrame {
 
         if (cost == pendingCard) {
             cancelPending();
-            setStatus("ยกเลิกการเล่นการ์ดแล้ว");
+            setStatus("Card play cancelled");
             return;
         }
 
@@ -528,25 +501,25 @@ public class GameWindow extends JFrame {
         if (pendingCard.getName().equals("Pulsar")) {
             if (!myPlayer.useActionPoint(1)) {
                 cancelPending();
-                setStatus("AP ไม่พอสำหรับเล่นการ์ด");
+                setStatus("Not enough AP to play this card");
                 return;
             }
 
             String targetName = pendingStar.getName();
             ((Pulsar) pendingCard).playEffect(myPlayer, pendingTarget, pendingStar, cost, gameState);
-            finishPlay(pendingCard, "Pulsar: ทำลาย " + targetName
-                    + " โดยทิ้ง " + cost.getName());
+            finishPlay(pendingCard, "Pulsar: destroyed " + targetName
+                    + " by discarding " + cost.getName());
         } else if (pendingCard.getName().equals("Worm Hole")) {
             if (!myPlayer.useActionPoint(1)) {
                 cancelPending();
-                setStatus("AP ไม่พอสำหรับเล่นการ์ด");
+                setStatus("Not enough AP to play this card");
                 return;
             }
 
             String targetName = pendingTarget.getUsername();
             ((WormHole) pendingCard).playEffectWithCard(myPlayer, pendingTarget, cost, gameState);
-            finishPlay(pendingCard, "Worm Hole: แลก " + cost.getName()
-                    + " กับการ์ดสุ่มจากมือ " + targetName);
+            finishPlay(pendingCard, "Worm Hole: traded " + cost.getName()
+                    + " for a random card from " + targetName + "'s hand");
         }
     }
 
@@ -554,8 +527,8 @@ public class GameWindow extends JFrame {
         int pos = star.getOrbitPosition();
 
         if (myPlayer.hasStarOnField(star.getName())) {
-            setStatus("วาง " + star.getName() + " ไม่ได้: มี " + star.getName()
-                    + " บนสนามแล้ว (แต่ละดวงวางได้ 1 ใบ)");
+            setStatus("Cannot place " + star.getName() + ": " + star.getName()
+                    + " is already on the field (1 copy per star)");
             return;
         }
 
@@ -564,7 +537,7 @@ public class GameWindow extends JFrame {
             pos = myPlayer.findFirstEmptySlot();
 
             if (pos < 0) {
-                setStatus("วาง " + star.getName() + " ไม่ได้: กระดานเต็ม 9 ช่อง");
+                setStatus("Cannot place " + star.getName() + ": the field is full (9 slots)");
                 return;
             }
 
@@ -572,7 +545,7 @@ public class GameWindow extends JFrame {
         }
 
         if (!myPlayer.useActionPoint(1)) {
-            setStatus("AP ไม่พอสำหรับวางดาว");
+            setStatus("Not enough AP to place a star");
             return;
         }
 
@@ -580,15 +553,15 @@ public class GameWindow extends JFrame {
         myPlayer.removeCardFromHand(star);
 
         refreshAll();
-        setStatus("วาง " + star.getName() + " ที่ช่อง " + pos
-                + " — AP เหลือ " + myPlayer.getActionPoints());
+        setStatus("Placed " + star.getName() + " in slot " + pos
+                + " - AP left: " + myPlayer.getActionPoints());
         notifyCardPlayed(star);
         checkWin();
     }
 
     private void playNoTarget(Card card, String message) {
         if (!myPlayer.useActionPoint(1)) {
-            setStatus("AP ไม่พอสำหรับเล่นการ์ด");
+            setStatus("Not enough AP to play this card");
             return;
         }
 
@@ -612,7 +585,7 @@ public class GameWindow extends JFrame {
         boardPanel.clearSelectable();
 
         refreshAll();
-        setStatus(message + " — AP เหลือ " + myPlayer.getActionPoints());
+        setStatus(message + " - AP left: " + myPlayer.getActionPoints());
         notifyCardPlayed(card);
         checkWin();
     }
@@ -625,7 +598,7 @@ public class GameWindow extends JFrame {
 
     private void checkWin() {
         if (myPlayer != null && myPlayer.checkWinCondition()) {
-            setStatus("คุณชนะแล้ว! ดาวบนสนามครบ 9 ดวง");
+            setStatus("You win! All 9 star slots are filled");
         }
     }
 
@@ -736,7 +709,7 @@ public class GameWindow extends JFrame {
         myPlayer.clearExpiredBuffs();
 
         refreshAll();
-        setStatus("เทิร์นใหม่: ได้ 2 AP — คลุม Nebula ของคุณหมดอายุแล้ว");
+        setStatus("New turn: 2 AP restored - your Nebula cloaks have expired");
     }
 
     private void setStatus(String text) {
@@ -776,8 +749,7 @@ public class GameWindow extends JFrame {
     }
 
     public void updateBoardState(String state) {
-<<<<<<< HEAD
-        System.out.println("[UI] อัปเดตกระดานด้วยข้อมูล: " + state);
+        System.out.println("[UI] Update board with state: " + state);
 
         if (state == null || state.isEmpty()) {
             return;
@@ -789,7 +761,7 @@ public class GameWindow extends JFrame {
         }
 
         if (state.startsWith("ERR#")) {
-            setStatus("เซิร์ฟเวอร์: " + state.substring("ERR#".length()).replace('#', ' '));
+            setStatus("Server: " + state.substring("ERR#".length()).replace('#', ' '));
             return;
         }
 
@@ -951,9 +923,6 @@ public class GameWindow extends JFrame {
         } catch (NumberFormatException e) {
             return fallback;
         }
-=======
-        System.out.println("[UI] Update board with state: " + state);
->>>>>>> ce10ad5fbe026dc001290b60a89f17b1836dee54
     }
 
     public BoardPanel getBoardPanel() {
@@ -1047,7 +1016,7 @@ public class GameWindow extends JFrame {
         gameState = new GameState(players);
 
         updateOpponentHands(5, 5, 5);
-        setStatus("เดโมพร้อมเล่น — เลือกการ์ดในมือ (AP 2, กดจบเทิร์นเพื่อรีเซ็ต)");
+        setStatus("Demo ready - pick a card from your hand (2 AP, press End Turn to reset)");
     }
 
     private static class SideHandPanel extends JPanel {

@@ -113,8 +113,10 @@ public class GameServer implements ServerContext {
                     break;
                 }
                 gameState = new GameState(buildPlayerList());
+                gameState.addChangeListener(this::broadcastState);
                 System.out.println("[Server] Game started with " + countPlayers() + " players");
                 broadcast("SYSTEM#GAME_START");
+                broadcastState();
                 break;
 
             case "END_TURN":
@@ -136,32 +138,14 @@ public class GameServer implements ServerContext {
             System.out.println("[Server] Player " + handler.getPlayer().getUsername() + " left the game");
             broadcast("SYSTEM#" + handler.getPlayer().getUsername() + "_LEFT");
         }
-<<<<<<< HEAD
+        if (gameState == null) {
+            broadcastLobby();
+        }
     }
 
     private void broadcastState() {
         if (gameState != null) {
             broadcast(gameState.toProtocolString());
-        }
-    }
-
-    private void checkAndStartGame() {
-        if (clients.size() == MAX_PLAYERS) {
-            List<Player> players = new ArrayList<>();
-            for (ClientHandler client : clients) {
-                if (client.getPlayer() == null) return;
-                players.add(client.getPlayer());
-            }
-            // สร้าง GameState เมื่อทุกคนส่งชื่อมาครบแล้ว
-            gameState = new GameState(players);
-            gameState.addChangeListener(this::broadcastState);
-            System.out.println("[Server] ผู้เล่นครบ " + MAX_PLAYERS + " คน!");
-            broadcast("SYSTEM#GAME_START");
-            broadcastState();
-=======
-        if (gameState == null) {
-            broadcastLobby();
->>>>>>> ce10ad5fbe026dc001290b60a89f17b1836dee54
         }
     }
 
