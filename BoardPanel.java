@@ -18,7 +18,6 @@ public class BoardPanel extends JPanel {
     private Consumer<Player> onPlayerClicked;
     private Player localPlayer;
 
-
     public BoardPanel() {
         setBackground(Color.LIGHT_GRAY);
         installMouseHandling();
@@ -28,6 +27,7 @@ public class BoardPanel extends JPanel {
         this.localPlayer = player;
         repaint();
     }
+
     private void installMouseHandling() {
         MouseAdapter mouse = new MouseAdapter() {
             @Override
@@ -92,27 +92,31 @@ public class BoardPanel extends JPanel {
         g.drawRect(w / 2 - 100, h / 2 - 40, 200, 80);
         g.drawString("HORIZON ZONE", w / 2 - 45, h / 2 + 5);
 
-        // จัดเรียงลำดับผู้เล่นใหม่ โดยเอา "ตัวเรา" ไว้ที่ตำแหน่ง 0 เสมอ (อยู่ล่างสุด)
+        if (players == null || players.isEmpty()) return;
+
+        // --- แก้ไขจุดนี้: จัดเรียงลำดับผู้เล่นใหม่ โดยเอา localPlayer (ตัวเรา) ไว้ที่ index 0 เสมอ ---
         List<Player> orderedPlayers = new ArrayList<>();
-        Player myPlayer = null;
+        if (localPlayer != null && players.contains(localPlayer)) {
+            orderedPlayers.add(localPlayer);
+            for (Player p : players) {
+                if (p != localPlayer) {
+                    orderedPlayers.add(p);
+                }
+            }
+        } else {
+            orderedPlayers.addAll(players);
+        }
 
-        // ค้นหาว่าใครคือตัวเรา (จากใน players ถ้าเรามีวิธีเช็ค หรือถ้าให้ GameWindow ส่งค่าเข้ามา)
-        // ในที่นี้เราจะเช็คจาก Player คนแรก หรือถ้าต้องการให้แม่นยำ สามารถสร้างเมธอด setMyPlayer ใน BoardPanel ได้ครับ
-        // แต่เบื้องต้นหากใช้ players.get(0) เป็นหลัก ให้เราปรับการหมุนตามตำแหน่งจริง:
+        int totalPlayers = Math.min(orderedPlayers.size(), 4);
 
-        int totalPlayers = Math.min(players.size(), 4);
-        if (totalPlayers == 0) return;
-
-        // วนลูปวาดสนามตามมุมมองของผู้เล่น
+        // 2. วาดพื้นที่ผู้เล่นทุกคนตามลำดับที่จัดใหม่
         for (int i = 0; i < totalPlayers; i++) {
-            Player p = players.get(i);
+            Player p = orderedPlayers.get(i);
             if (p == null) continue;
 
-            // กำหนดตำแหน่งพิกัดตามลำดับหน้าจอ (0=ล่าง, 1=บน, 2=ซ้าย, 3=ขวา)
-            // หมายเหตุ: หากต้องการให้กระดานหมุนตามผู้เล่นแต่ละคน สามารถปรับ Index ตรงนี้ได้ครับ
             int px = 20, py = 20;
-            if (i == 0) { px = w / 2 - 225; py = h - 100; }     // ด้านล่าง (ผู้เล่นหลัก / ตัวเรา)
-            else if (i == 1) { px = w / 2 - 225; py = 20; }     // ด้านบน (ฝั่งตรงข้าม)
+            if (i == 0) { px = w / 2 - 225; py = h - 100; }     // ด้านล่าง (ตัวเรา - index 0 เสมอ)
+            else if (i == 1) { px = w / 2 - 225; py = 20; }     // ด้านบน
             else if (i == 2) { px = 20; py = h / 2 - 50; }     // ด้านซ้าย
             else if (i == 3) { px = w - 160; py = h / 2 - 50; } // ด้านขวา
 
