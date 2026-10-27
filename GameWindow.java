@@ -760,24 +760,27 @@ public class GameWindow extends JFrame {
             int count = getComponentCount();
             if (count == 0) return;
 
-            int gap = 6;
-            int cardW = Math.min(110, Math.max(52, getWidth() - gap * 2));
-            int cardH = (int) Math.round(cardW * 1.4);
-            int totalH = count * cardH + (count - 1) * gap;
+            int gap = 4;
+            int availableW = getWidth();
+            int availableH = getHeight();
 
-            if (totalH > getHeight()) {
-                cardH = Math.max(1, (getHeight() - (count - 1) * gap) / count);
-                cardW = (int) Math.round(cardH / 1.4);
-                totalH = count * cardH + (count - 1) * gap;
+            int cardH = Math.min(90, Math.max(40, availableH - gap * 2));
+            int cardW = (int) Math.round(cardH / 1.4);
+
+            int totalW = count * cardW + (count - 1) * gap;
+            if (totalW > availableW) {
+                cardW = Math.max(20, (availableW - (count - 1) * gap) / count);
+                cardH = (int) Math.round(cardW * 1.4);
+                totalW = count * cardW + (count - 1) * gap;
             }
 
-            int startX = (getWidth() - cardW) / 2;
-            int startY = Math.max(0, (getHeight() - totalH) / 2);
-            int y = startY;
+            int startX = Math.max(0, (availableW - totalW) / 2);
+            int startY = (availableH - cardH) / 2;
+            int x = startX;
 
             for (Component card : getComponents()) {
-                card.setBounds(startX, y, cardW, cardH);
-                y += cardH + gap;
+                card.setBounds(x, startY, cardW, cardH);
+                x += cardW + gap;
             }
         }
     }
