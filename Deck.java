@@ -11,14 +11,14 @@ public class Deck {
 
   public void buildDeck(){
     addStars("SUN",     "The Sun", 3, ImgPath.The_Sun, 2, 8);
-    addStars("MERCURY", "Mercury", 5, ImgPath.Mercury, 3, 1);
-    addStars("VENUS",   "Venus",   4, ImgPath.Venus,   3, 2);
-    addStars("EARTH",   "Earth",   4, ImgPath.Earth,   4, 3);
-    addStars("MARS",    "Mars",    5, ImgPath.Mars,    4, 4);
-    addStars("JUPITER", "Jupiter", 3, ImgPath.Jupiter, 2, 5);
-    addStars("SATURN",  "Saturn",  3, ImgPath.Saturn,  2, 6);
-    addStars("URANUS",  "Uranus",  4, ImgPath.Uranus,  2, 7);
-    addStars("NEPTUNE", "Neptune", 4, ImgPath.Neptune, 2, 0);
+    addStars("MERCURY", "Mercury", 3, ImgPath.Mercury, 3, 1);
+    addStars("VENUS",   "Venus",   2, ImgPath.Venus,   3, 2);
+    addStars("EARTH",   "Earth",   2, ImgPath.Earth,   4, 3);
+    addStars("MARS",    "Mars",    3, ImgPath.Mars,    4, 4);
+    addStars("JUPITER", "Jupiter", 1, ImgPath.Jupiter, 2, 5);
+    addStars("SATURN",  "Saturn",  1, ImgPath.Saturn,  2, 6);
+    addStars("URANUS",  "Uranus",  1, ImgPath.Uranus,  2, 7);
+    addStars("NEPTUNE", "Neptune", 2, ImgPath.Neptune, 2, 0);
 
 
     for (int i = 1; i <= 4; i++)

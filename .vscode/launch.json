@@ -9,6 +9,13 @@
       "name": "EntryWindow",
       "request": "launch",
       "mainClass": "EntryWindow",
+      "projectName": "OOP-Game-Card_e1165b15"
+    },
+    {
+      "type": "java",
+      "name": "EntryWindow",
+      "request": "launch",
+      "mainClass": "EntryWindow",
       "projectName": "OOP-Game-Card_165b923f"
     },
     {
