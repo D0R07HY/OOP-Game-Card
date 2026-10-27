@@ -1,28 +1,35 @@
 {
-    // Use IntelliSense to learn about possible attributes.
-    // Hover to view descriptions of existing attributes.
-    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
-    "version": "0.2.0",
-    "configurations": [
-        {
-            "type": "java",
-            "name": "GameWindow",
-            "request": "launch",
-            "mainClass": "GameWindow",
-            "projectName": "OOP-Game-Card_d13df869"
-        },
-        {
-            "type": "java",
-            "name": "Current File",
-            "request": "launch",
-            "mainClass": "${file}"
-        },
-        {
-            "type": "java",
-            "name": "EntryWindow",
-            "request": "launch",
-            "mainClass": "EntryWindow",
-            "projectName": "OOP-Game-Card_d13df869"
-        }
-    ]
+  // Use IntelliSense to learn about possible attributes.
+  // Hover to view descriptions of existing attributes.
+  // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "type": "java",
+      "name": "EntryWindow",
+      "request": "launch",
+      "mainClass": "EntryWindow",
+      "projectName": "OOP-Game-Card_165b923f"
+    },
+    {
+      "type": "java",
+      "name": "GameWindow",
+      "request": "launch",
+      "mainClass": "GameWindow",
+      "projectName": "OOP-Game-Card_d13df869"
+    },
+    {
+      "type": "java",
+      "name": "Current File",
+      "request": "launch",
+      "mainClass": "${file}"
+    },
+    {
+      "type": "java",
+      "name": "EntryWindow",
+      "request": "launch",
+      "mainClass": "EntryWindow",
+      "projectName": "OOP-Game-Card_d13df869"
+    }
+  ]
 }

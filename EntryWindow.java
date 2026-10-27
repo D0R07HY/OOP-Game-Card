@@ -2,7 +2,6 @@ import java.awt.*;
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
-import javax.swing.BorderFactory;
 import javax.swing.*;
 import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
@@ -61,7 +60,7 @@ public class EntryWindow extends JFrame {
 
         joinButton.addActionListener(e -> joinRoom());
         createButton.addActionListener(e -> createRoom());
-
+        setVisible(true);
         setLocationRelativeTo(null);
     }
 
@@ -176,6 +175,6 @@ public class EntryWindow extends JFrame {
     }
 
     public static void main(String[] args) {
-        SwingUtilities.invokeLater(() -> new EntryWindow().setVisible(true));
+        new EntryWindow();
     }
 }

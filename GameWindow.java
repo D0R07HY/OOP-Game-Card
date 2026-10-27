@@ -1,12 +1,4 @@
-import java.awt.BorderLayout;
-import java.awt.Color;
-import java.awt.Component;
-import java.awt.Dimension;
-import java.awt.FlowLayout;
-import java.awt.Font;
-import java.awt.GraphicsEnvironment;
-import java.awt.Image;
-import java.awt.Rectangle;
+import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -15,14 +7,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.Consumer;
-import javax.swing.BorderFactory;
-import javax.swing.ImageIcon;
-import javax.swing.JButton;
-import javax.swing.JFrame;
-import javax.swing.JLabel;
-import javax.swing.JOptionPane;
-import javax.swing.JPanel;
-import javax.swing.SwingUtilities;
+import javax.swing.*;
 
 public class GameWindow extends JFrame {
 
@@ -147,11 +132,6 @@ public class GameWindow extends JFrame {
         }
 
         Integer remaining = myPlayer == null ? null : deckCounts.get(myPlayer);
-
-        if (remaining == null && client == null && myPlayer != null) {
-            remaining = myPlayer.getDeck().size();
-        }
-
         deckLabel.setText(remaining == null
                 ? "เด็คคงเหลือ: -"
                 : "เด็คคงเหลือ: " + remaining + " ใบ");
@@ -196,11 +176,9 @@ public class GameWindow extends JFrame {
 
         if (count > 0) {
             int available = myHandPanel.getWidth();
-
             if (available < 300) {
                 available = Math.max(620, getWidth() - 240);
             }
-
             int usable = Math.max(0, available - 8 * (count + 1));
             cardW = Math.max(52, Math.min(92, usable / count));
             cardH = Math.min(129, Math.max(72, (int) Math.round(cardW * 1.4)));
@@ -213,9 +191,7 @@ public class GameWindow extends JFrame {
                 cardBtn.setPreferredSize(new Dimension(cardW, cardH));
                 cardBtn.setToolTipText(card.getName());
                 cardBtn.setSelected(card == pendingCard);
-
                 cardBtn.setOnClick(() -> handleHandCardClick(card));
-
                 myHandPanel.add(cardBtn);
             }
         }
@@ -225,8 +201,6 @@ public class GameWindow extends JFrame {
     }
 
     private void handleHandCardClick(Card card) {
-        System.out.println("[UI] กดการ์ด: " + card.getName());
-
         if (pendingMode == PendingMode.COST_CARD) {
             resolveCostCard(card);
             return;
@@ -277,7 +251,7 @@ public class GameWindow extends JFrame {
         }
 
         if (card instanceof StarCard) {
-            placeStarCard((StarCard) card);
+            sendPlayToServer(card, null, null, null);
             return;
         }
 
@@ -286,116 +260,70 @@ public class GameWindow extends JFrame {
             return;
         }
 
-        String name = card.getName();
+        SpecialCard special = (SpecialCard) card;
+        String name = special.getName();
+        String targetType = special.getTargetType();
+        String prompt = special.getPromptMessage();
 
-        if (name.equals("Meteor Strike")) {
-            Set<StarCard> targets = enemyStars();
-
-            if (targets.isEmpty()) {
-                setStatus("Meteor Strike: ไม่มีดาวคู่แข่งที่เลือกได้");
-                return;
-            }
-
-            beginTargeting(card, PendingMode.ENEMY_STAR, targets, null,
-                    "Meteor Strike: เลือกดาวของคู่แข่ง 1 ดวง (ดาเมจ 2)");
-        } else if (name.equals("Supernova")) {
-            Set<Player> targets = new HashSet<>();
-
-            for (Player player : players) {
-                if (player != myPlayer && player.isActive() && hasTargetableStar(player)) {
-                    targets.add(player);
-                }
-            }
-
-            if (targets.isEmpty()) {
-                setStatus("Supernova: ไม่มีผู้เล่นเป้าหมายที่เลือกได้");
-                return;
-            }
-
-            beginTargeting(card, PendingMode.ENEMY_PLAYER, null, targets,
-                    "Supernova: เลือกผู้เล่นเป้าหมาย (ดาเมจทุกดาว 1)");
-        } else if (name.equals("Pulsar")) {
+        if (name.equals("Pulsar")) {
             if (myPlayer.isPulsarUsedThisTurn()) {
                 setStatus("Pulsar ใช้ได้ 1 ครั้งต่อเทิร์นเท่านั้น");
                 return;
             }
-
             if (otherHandCardCount(card) == 0) {
                 setStatus("Pulsar: ต้องมีการ์ดอีก 1 ใบในมือเพื่อทิ้งเป็นค่าการใช้");
                 return;
             }
-
-            Set<StarCard> targets = enemyStars();
-
-            if (targets.isEmpty()) {
-                setStatus("Pulsar: ไม่มีดาวคู่แข่งที่เลือกได้");
-                return;
-            }
-
-            beginTargeting(card, PendingMode.ENEMY_STAR, targets, null,
-                    "Pulsar: เลือกดาวคู่แข่งที่จะทำลาย");
-        } else if (name.equals("Force Field")) {
-            Set<StarCard> targets = ownStars();
-
-            if (targets.isEmpty()) {
-                setStatus("Force Field: คุณยังไม่มีดาวบนสนาม");
-                return;
-            }
-
-            beginTargeting(card, PendingMode.ALLY_STAR, targets, null,
-                    "Force Field: เลือกดาวของตนเองเพื่อติดโล่ 1 ครั้ง");
-        } else if (name.equals("Nebula Cloak")) {
-            Set<StarCard> targets = ownStars();
-
-            if (targets.isEmpty()) {
-                setStatus("Nebula Cloak: คุณยังไม่มีดาวบนสนาม");
-                return;
-            }
-
-            beginTargeting(card, PendingMode.ALLY_STAR, targets, null,
-                    "Nebula Cloak: เลือกดาวของตนเองเพื่อซ่อนจากเป้าหมายโจมตี");
-        } else if (name.equals("Stellar Regeneration")) {
-            Set<StarCard> targets = ownStars();
-
-            if (targets.isEmpty()) {
-                setStatus("Stellar Regeneration: คุณยังไม่มีดาวบนสนาม");
-                return;
-            }
-
-            beginTargeting(card, PendingMode.ALLY_STAR, targets, null,
-                    "Stellar Regeneration: เลือกดาวของตนเองเพื่อฟื้นฟู 3 HP");
-        } else if (name.equals("Space Probe")) {
-            playNoTarget(card, "Space Probe: จั่วการ์ด 2 ใบ");
-        } else if (name.equals("Big Bang")) {
-            playNoTarget(card, "Big Bang: นำ The Sun ลงสนามและฟื้นฟู HP ดาวทุกดวง");
         } else if (name.equals("Black Hole")) {
             if (gameState.isBlackHoleUsed()) {
                 setStatus("Black Hole ถูกใช้ไปแล้วในเกมนี้");
                 return;
             }
-
-            playNoTarget(card, "Black Hole: ทำลายดาวทุกดวงบนสนาม");
         } else if (name.equals("Worm Hole")) {
             if (otherHandCardCount(card) == 0) {
                 setStatus("Worm Hole: ต้องมีการ์ดอีก 1 ใบในมือเพื่อใช้แลก");
                 return;
             }
+        }
 
-            Set<Player> targets = new HashSet<>();
-
-            for (Player player : players) {
-                if (player != myPlayer && handCountOf(player) > 0) {
-                    targets.add(player);
-                }
-            }
-
+        if (SpecialCard.TARGET_ENEMY_STAR.equals(targetType)) {
+            Set<StarCard> targets = enemyStars();
             if (targets.isEmpty()) {
-                setStatus("Worm Hole: ไม่มีคู่แข่งที่มีการ์ดในมือให้แลก");
+                setStatus(name + ": ไม่มีดาวคู่แข่งที่เลือกได้");
                 return;
             }
-
-            beginTargeting(card, PendingMode.ENEMY_PLAYER, null, targets,
-                    "Worm Hole: เลือกผู้เล่นเป้าหมายที่จะแลกการ์ด");
+            beginTargeting(card, PendingMode.ENEMY_STAR, targets, null, prompt);
+        } else if (SpecialCard.TARGET_ALLY_STAR.equals(targetType)) {
+            Set<StarCard> targets = ownStars();
+            if (targets.isEmpty()) {
+                setStatus(name + ": คุณยังไม่มีดาวบนสนาม");
+                return;
+            }
+            beginTargeting(card, PendingMode.ALLY_STAR, targets, null, prompt);
+        } else if (SpecialCard.TARGET_ENEMY_PLAYER.equals(targetType)) {
+            Set<Player> targets = new HashSet<>();
+            for (Player player : players) {
+                if (player != myPlayer && player.isActive()) {
+                    if (name.equals("Supernova")) {
+                        if (hasTargetableStar(player)) {
+                            targets.add(player);
+                        }
+                    } else if (name.equals("Worm Hole")) {
+                        if (handCountOf(player) > 0) {
+                            targets.add(player);
+                        }
+                    } else {
+                        targets.add(player);
+                    }
+                }
+            }
+            if (targets.isEmpty()) {
+                setStatus(name + ": ไม่มีผู้เล่นเป้าหมายที่เลือกได้");
+                return;
+            }
+            beginTargeting(card, PendingMode.ENEMY_PLAYER, null, targets, prompt);
+        } else if (SpecialCard.TARGET_NONE.equals(targetType)) {
+            sendPlayToServer(card, null, null, null);
         } else {
             setStatus("ยังไม่ได้เชื่อม Logic ของการ์ด: " + name);
         }
@@ -431,7 +359,6 @@ public class GameWindow extends JFrame {
         }
 
         Player owner = findOwner(star);
-
         if (owner == null) {
             return;
         }
@@ -463,47 +390,14 @@ public class GameWindow extends JFrame {
                 return;
             }
 
-            if (sendPlayToServer(pendingCard, owner, star, null)) {
-                return;
-            }
-
-            if (!myPlayer.useActionPoint(1)) {
-                cancelPending();
-                setStatus("AP ไม่พอสำหรับเล่นการ์ด");
-                return;
-            }
-
-            pendingCard.playEffect(myPlayer, owner, star, gameState);
-            finishPlay(pendingCard, "Meteor Strike: " + star.getName()
-                    + " ของ " + owner.getUsername() + " ถูกโจมตี");
+            sendPlayToServer(pendingCard, owner, star, null);
         } else if (pendingMode == PendingMode.ALLY_STAR) {
             if (owner != myPlayer) {
                 setStatus("เลือกดาวของตนเองเท่านั้น");
                 return;
             }
 
-            if (sendPlayToServer(pendingCard, myPlayer, star, null)) {
-                return;
-            }
-
-            if (!myPlayer.useActionPoint(1)) {
-                cancelPending();
-                setStatus("AP ไม่พอสำหรับเล่นการ์ด");
-                return;
-            }
-
-            String cardName = pendingCard.getName();
-            pendingCard.playEffect(myPlayer, myPlayer, star, gameState);
-
-            if (cardName.equals("Stellar Regeneration")) {
-                finishPlay(pendingCard, "Stellar Regeneration: ฟื้นฟู " + star.getName()
-                        + " เป็น " + star.getHp() + "/" + star.getMaxHp());
-            } else if (cardName.equals("Force Field")) {
-                finishPlay(pendingCard, "Force Field: " + star.getName() + " ได้รับโล่ 1 ครั้ง");
-            } else {
-                finishPlay(pendingCard, "Nebula Cloak: " + star.getName()
-                        + " ถูกซ่อนจนถึงเทิร์นถัดไป");
-            }
+            sendPlayToServer(pendingCard, myPlayer, star, null);
         } else if (pendingMode == PendingMode.ENEMY_PLAYER) {
             handlePlayerClick(owner);
         }
@@ -534,25 +428,12 @@ public class GameWindow extends JFrame {
             pendingMode = PendingMode.COST_CARD;
             boardPanel.clearSelectable();
             updateMyHand(myPlayer.getHand());
-            setStatus("Worm Hole: เลือกการ์ดในมือ 1 ใบเพื่อแลกกับ "
-                    + target.getUsername());
+            setStatus("Worm Hole: เลือกการ์ดในมือ 1 ใบเพื่อแลกกับ " + target.getUsername());
             return;
         }
 
         if (pendingCard.getName().equals("Supernova")) {
-            if (sendPlayToServer(pendingCard, target, null, null)) {
-                return;
-            }
-
-            if (!myPlayer.useActionPoint(1)) {
-                cancelPending();
-                setStatus("AP ไม่พอสำหรับเล่นการ์ด");
-                return;
-            }
-
-            pendingCard.playEffect(myPlayer, target, null, gameState);
-            finishPlay(pendingCard, "Supernova: ดาวทุกดวงของ "
-                    + target.getUsername() + " เสีย HP 1");
+            sendPlayToServer(pendingCard, target, null, null);
         }
     }
 
@@ -571,102 +452,21 @@ public class GameWindow extends JFrame {
             return;
         }
 
-        if (client != null) {
-            sendPlayToServer(pendingCard, pendingTarget, pendingStar, cost);
-            return;
-        }
-
-        if (pendingCard.getName().equals("Pulsar")) {
-            if (!myPlayer.useActionPoint(1)) {
-                cancelPending();
-                setStatus("AP ไม่พอสำหรับเล่นการ์ด");
-                return;
-            }
-
-            String targetName = pendingStar.getName();
-            ((Pulsar) pendingCard).playEffect(myPlayer, pendingTarget, pendingStar, cost, gameState);
-            finishPlay(pendingCard, "Pulsar: ทำลาย " + targetName
-                    + " โดยทิ้ง " + cost.getName());
-        } else if (pendingCard.getName().equals("Worm Hole")) {
-            if (!myPlayer.useActionPoint(1)) {
-                cancelPending();
-                setStatus("AP ไม่พอสำหรับเล่นการ์ด");
-                return;
-            }
-
-            String targetName = pendingTarget.getUsername();
-            ((WormHole) pendingCard).playEffectWithCard(myPlayer, pendingTarget, cost, gameState);
-            finishPlay(pendingCard, "Worm Hole: แลก " + cost.getName()
-                    + " กับการ์ดสุ่มจากมือ " + targetName);
-        }
+        sendPlayToServer(pendingCard, pendingTarget, pendingStar, cost);
     }
 
-    private void placeStarCard(StarCard star) {
-        if (sendPlayToServer(star, null, null, null)) {
-            return;
-        }
-
-        int pos = star.getOrbitPosition();
-
-        if (myPlayer.hasStarOnField(star.getName())) {
-            setStatus("วาง " + star.getName() + " ไม่ได้: มี " + star.getName()
-                    + " บนสนามแล้ว (แต่ละดวงวางได้ 1 ใบ)");
-            return;
-        }
-
-        if (pos < 0 || pos >= myPlayer.getField().length
-                || myPlayer.getField()[pos] != null) {
-            pos = myPlayer.findFirstEmptySlot();
-
-            if (pos < 0) {
-                setStatus("วาง " + star.getName() + " ไม่ได้: กระดานเต็ม 9 ช่อง");
-                return;
-            }
-
-            star.setOrbitPosition(pos);
-        }
-
-        if (!myPlayer.useActionPoint(1)) {
-            setStatus("AP ไม่พอสำหรับวางดาว");
-            return;
-        }
-
-        star.playEffect(myPlayer, myPlayer, null, gameState);
-        myPlayer.removeCardFromHand(star);
-
-        refreshAll();
-        setStatus("วาง " + star.getName() + " ที่ช่อง " + pos
-                + " — AP เหลือ " + myPlayer.getActionPoints());
-        notifyCardPlayed(star);
-        checkWin();
-    }
-
-    private void playNoTarget(Card card, String message) {
-        if (sendPlayToServer(card, null, null, null)) {
-            return;
-        }
-
-        if (!myPlayer.useActionPoint(1)) {
-            setStatus("AP ไม่พอสำหรับเล่นการ์ด");
-            return;
-        }
-
-        card.playEffect(myPlayer, null, null, gameState);
-        finishPlay(card, message);
-    }
-
-    private boolean sendPlayToServer(Card card, Player target, StarCard targetStar, Card cost) {
+    private void sendPlayToServer(Card card, Player target, StarCard targetStar, Card cost) {
         if (client == null) {
-            return false;
+            setStatus("ไม่ได้เชื่อมต่อกับเซิร์ฟเวอร์");
+            return;
         }
 
         if (card == null || card.getId() == null) {
             setStatus("ไม่พบรหัสการ์ดสำหรับส่งไปเซิร์ฟเวอร์");
-            return true;
+            return;
         }
 
         int targetIndex = -1;
-
         if (target != null && players != null) {
             targetIndex = players.indexOf(target);
         }
@@ -677,7 +477,6 @@ public class GameWindow extends JFrame {
 
         if (card instanceof SpecialCard) {
             String category = ((SpecialCard) card).getCategory();
-
             if (SpecialCard.CATEGORY_ATTACK.equals(category)) {
                 command = "ATTACK";
             } else if (SpecialCard.CATEGORY_DEFENSE.equals(category)) {
@@ -689,39 +488,9 @@ public class GameWindow extends JFrame {
                 + targetSlot + "#" + costId);
         cancelPending();
         setStatus("ส่งคำสั่งเล่นการ์ดไปยังเซิร์ฟเวอร์แล้ว...");
-        return true;
-    }
 
-    private void finishPlay(Card card, String message) {
-        myPlayer.removeCardFromHand(card);
-
-        if (!(card instanceof BlackHole)) {
-            myPlayer.addToDropZone(card);
-        }
-
-        boardPanel.playCardToDropZone(card, loadCardImage(card));
-
-        pendingCard = null;
-        pendingMode = PendingMode.NONE;
-        pendingStar = null;
-        pendingTarget = null;
-        boardPanel.clearSelectable();
-
-        refreshAll();
-        setStatus(message + " — AP เหลือ " + myPlayer.getActionPoints());
-        notifyCardPlayed(card);
-        checkWin();
-    }
-
-    private void notifyCardPlayed(Card card) {
         if (onCardSelected != null) {
             onCardSelected.accept(card);
-        }
-    }
-
-    private void checkWin() {
-        if (myPlayer != null && myPlayer.checkWinCondition()) {
-            setStatus("คุณชนะแล้ว! ดาวบนสนามครบ 9 ดวง");
         }
     }
 
@@ -737,7 +506,6 @@ public class GameWindow extends JFrame {
         }
 
         String message;
-
         if (winner == null) {
             message = "เกมจบแล้ว — ไม่มีผู้เล่นเหลืออยู่";
         } else if (winner == myPlayer) {
@@ -768,39 +536,28 @@ public class GameWindow extends JFrame {
 
     private Set<StarCard> enemyStars() {
         Set<StarCard> result = new HashSet<>();
-
-        if (players == null) {
-            return result;
-        }
+        if (players == null) return result;
 
         for (Player p : players) {
-            if (p == null || p == myPlayer || !p.isActive()) {
-                continue;
-            }
-
+            if (p == null || p == myPlayer || !p.isActive()) continue;
             for (StarCard star : p.getField()) {
                 if (star != null && !p.isCloaked(star)) {
                     result.add(star);
                 }
             }
         }
-
         return result;
     }
 
     private Set<StarCard> ownStars() {
         Set<StarCard> result = new HashSet<>();
-
-        if (myPlayer == null) {
-            return result;
-        }
+        if (myPlayer == null) return result;
 
         for (StarCard star : myPlayer.getField()) {
             if (star != null) {
                 result.add(star);
             }
         }
-
         return result;
     }
 
@@ -814,48 +571,27 @@ public class GameWindow extends JFrame {
     }
 
     private int otherHandCardCount(Card excluded) {
-        if (myPlayer == null) {
-            return 0;
-        }
-
+        if (myPlayer == null) return 0;
         int count = 0;
-
         for (Card card : myPlayer.getHand()) {
-            if (card != excluded) {
-                count++;
-            }
+            if (card != excluded) count++;
         }
-
         return count;
     }
 
     private int handCountOf(Player player) {
-        if (player == null || !player.isActive()) {
-            return 0;
-        }
-
+        if (player == null || !player.isActive()) return 0;
         Integer count = handCounts.get(player);
-
-        if (count != null) {
-            return count;
-        }
-
-        return player.getHand().size();
+        return count != null ? count : player.getHand().size();
     }
 
     private Player findOwner(StarCard star) {
-        if (players == null) {
-            return null;
-        }
-
+        if (players == null) return null;
         for (Player p : players) {
             for (StarCard fieldStar : p.getField()) {
-                if (fieldStar == star) {
-                    return p;
-                }
+                if (fieldStar == star) return p;
             }
         }
-
         return null;
     }
 
@@ -864,9 +600,7 @@ public class GameWindow extends JFrame {
     }
 
     public void endTurn() {
-        if (myPlayer == null) {
-            return;
-        }
+        if (myPlayer == null) return;
 
         if (gameState != null && gameState.isGameOver()) {
             setStatus("เกมจบแล้ว");
@@ -888,61 +622,11 @@ public class GameWindow extends JFrame {
 
             client.sendAction("END_TURN");
             setStatus("ส่งคำสั่งจบเทิร์นแล้ว กำลังรอเซิร์ฟเวอร์...");
-            return;
         }
-
-        myPlayer.clearExpiredBuffs();
-
-        int discarded = 0;
-
-        while (myPlayer.getHand().size() > Player.MAX_HAND) {
-            Card last = myPlayer.getHand().get(myPlayer.getHand().size() - 1);
-            myPlayer.removeCardFromHand(last);
-            myPlayer.addToDropZone(last);
-            discarded++;
-        }
-
-        Card drawn = myPlayer.getDeck().drawCard();
-
-        if (drawn == null) {
-            if (gameState != null) {
-                gameState.setGameOver(true);
-                gameState.setWinner(null);
-            }
-
-            if (endTurnButton != null) {
-                endTurnButton.setEnabled(false);
-            }
-
-            deckCounts.put(myPlayer, 0);
-            boardPanel.setDeckCounts(deckCounts);
-            updateDeckLabel();
-            refreshAll();
-            setStatus("เด็คหมด — คุณแพ้ (Deck Out)");
-            return;
-        }
-
-        myPlayer.addCardToHand(drawn);
-        myPlayer.resetActionPoints();
-
-        deckCounts.put(myPlayer, myPlayer.getDeck().size());
-        boardPanel.setDeckCounts(deckCounts);
-        updateDeckLabel();
-
-        refreshAll();
-
-        String message = "จั่วได้ " + drawn.getName() + " — เทิร์นใหม่: ได้ 2 AP";
-
-        if (discarded > 0) {
-            message += " (ทิ้ง " + discarded + " ใบเพราะมือเกิน 7)";
-        }
-
-        setStatus(message);
     }
 
     private void setStatus(String text) {
         System.out.println("[UI] " + text);
-
         if (statusLabel != null) {
             statusLabel.setText(text);
         }
@@ -979,9 +663,7 @@ public class GameWindow extends JFrame {
     public void updateBoardState(String state) {
         System.out.println("[UI] อัปเดตกระดานด้วยข้อมูล: " + state);
 
-        if (state == null || state.isEmpty()) {
-            return;
-        }
+        if (state == null || state.isEmpty()) return;
 
         if (state.startsWith("SYSTEM#")) {
             setStatus(state.substring("SYSTEM#".length()).replace('_', ' '));
@@ -998,33 +680,24 @@ public class GameWindow extends JFrame {
             return;
         }
 
-        if (!state.startsWith("UPDATE_BOARD#")) {
-            return;
-        }
+        if (!state.startsWith("UPDATE_BOARD#")) return;
 
         applyBoardSnapshot(state);
     }
 
     private void applyHandSnapshot(String message) {
-        if (myPlayer == null) {
-            return;
-        }
+        if (myPlayer == null) return;
 
         List<Card> newHand = new ArrayList<>();
-        String body = message.startsWith("HAND#")
-                ? message.substring("HAND#".length()) : "";
+        String body = message.startsWith("HAND#") ? message.substring("HAND#".length()) : "";
 
         if (!body.isEmpty()) {
             for (String record : body.split("#", -1)) {
                 String[] parts = record.split(",", -1);
-
-                if (parts.length < 5) {
-                    continue;
-                }
+                if (parts.length < 5) continue;
 
                 Card card = CardFactory.create(parts[0], parts[1], parts[2],
                         parseInt(parts[3], 0), parseInt(parts[4], -1));
-
                 if (card != null) {
                     newHand.add(card);
                 }
@@ -1049,7 +722,6 @@ public class GameWindow extends JFrame {
 
         for (int i = 1; i < tokens.length; i++) {
             String token = tokens[i];
-
             if (token.startsWith("TURN:")) {
                 turn = parseInt(token.substring("TURN:".length()), -1);
             } else if (token.startsWith("PHASE:")) {
@@ -1070,22 +742,17 @@ public class GameWindow extends JFrame {
         }
 
         List<Player> targetPlayers = players;
-
         if ((targetPlayers == null || targetPlayers.isEmpty()) && gameState != null) {
             targetPlayers = gameState.getPlayers();
         }
 
-        if (targetPlayers == null) {
-            return;
-        }
+        if (targetPlayers == null) return;
 
         cancelPending();
 
         int[] oldDropCounts = new int[targetPlayers.size()];
-
         for (int i = 0; i < targetPlayers.size(); i++) {
             Player player = targetPlayers.get(i);
-
             if (player != null) {
                 oldDropCounts[i] = player.getDropZone().size();
                 player.clearField();
@@ -1102,22 +769,13 @@ public class GameWindow extends JFrame {
 
         for (String record : playerRecords) {
             String[] parts = record.split(",", -1);
-
-            if (parts.length < 6) {
-                continue;
-            }
+            if (parts.length < 6) continue;
 
             int index = parseInt(parts[0], -1);
-
-            if (index < 0 || index >= targetPlayers.size()) {
-                continue;
-            }
+            if (index < 0 || index >= targetPlayers.size()) continue;
 
             Player player = targetPlayers.get(index);
-
-            if (player == null) {
-                continue;
-            }
+            if (player == null) continue;
 
             player.setActionPoints(parseInt(parts[2], player.getActionPoints()));
             player.setActive(parts.length < 7 || !"0".equals(parts[6]));
@@ -1129,12 +787,9 @@ public class GameWindow extends JFrame {
         handCounts.clear();
 
         for (int i = 0; i < deckCountsByIndex.length; i++) {
-            if (targetPlayers.get(i) == null) {
-                continue;
-            }
+            if (targetPlayers.get(i) == null) continue;
 
             handCounts.put(targetPlayers.get(i), handCountsByIndex[i]);
-
             if (deckCountsByIndex[i] >= 0) {
                 deckCounts.put(targetPlayers.get(i), deckCountsByIndex[i]);
             }
@@ -1145,23 +800,15 @@ public class GameWindow extends JFrame {
 
         for (String record : fieldRecords) {
             String[] parts = record.split(",", -1);
-
-            if (parts.length < 7) {
-                continue;
-            }
+            if (parts.length < 7) continue;
 
             int playerIndex = parseInt(parts[0], -1);
             int slot = parseInt(parts[1], -1);
 
-            if (playerIndex < 0 || playerIndex >= targetPlayers.size()) {
-                continue;
-            }
+            if (playerIndex < 0 || playerIndex >= targetPlayers.size()) continue;
 
             Player player = targetPlayers.get(playerIndex);
-
-            if (player == null || slot < 0 || slot >= player.getField().length) {
-                continue;
-            }
+            if (player == null || slot < 0 || slot >= player.getField().length) continue;
 
             int maxHp = Math.max(1, parseInt(parts[4], 1));
             int hp = Math.max(0, Math.min(maxHp, parseInt(parts[3], maxHp)));
@@ -1173,37 +820,21 @@ public class GameWindow extends JFrame {
                 star.takeDamage(maxHp - hp);
             }
 
-            if (!player.placeStar(star)) {
-                continue;
-            }
+            if (!player.placeStar(star)) continue;
 
-            if ("1".equals(parts[5])) {
-                player.addShield(star);
-            }
-
-            if ("1".equals(parts[6])) {
-                player.addCloak(star);
-            }
+            if ("1".equals(parts[5])) player.addShield(star);
+            if ("1".equals(parts[6])) player.addCloak(star);
         }
 
         for (String record : dropRecords) {
             String[] parts = record.split(",", -1);
-
-            if (parts.length < 6) {
-                continue;
-            }
+            if (parts.length < 6) continue;
 
             int playerIndex = parseInt(parts[0], -1);
-
-            if (playerIndex < 0 || playerIndex >= targetPlayers.size()) {
-                continue;
-            }
+            if (playerIndex < 0 || playerIndex >= targetPlayers.size()) continue;
 
             Player player = targetPlayers.get(playerIndex);
-
-            if (player == null) {
-                continue;
-            }
+            if (player == null) continue;
 
             Card card = CardFactory.create(parts[1], parts[2], parts[3],
                     parseInt(parts[4], 0), parseInt(parts[5], -1));
@@ -1215,13 +846,9 @@ public class GameWindow extends JFrame {
 
         for (int i = 0; i < targetPlayers.size(); i++) {
             Player player = targetPlayers.get(i);
-
-            if (player == null) {
-                continue;
-            }
+            if (player == null) continue;
 
             int newDropCount = player.getDropZone().size();
-
             if (newDropCount > oldDropCounts[i] && newDropCount > 0) {
                 Card lastDrop = player.getDropZone().get(newDropCount - 1);
                 boardPanel.playCardToDropZone(lastDrop, loadCardImage(lastDrop));
@@ -1229,13 +856,8 @@ public class GameWindow extends JFrame {
         }
 
         if (gameState != null) {
-            if (turn >= 0) {
-                gameState.setCurrentPlayerIndex(turn);
-            }
-
-            if (phase >= 0) {
-                gameState.setCurrentPhase(phase);
-            }
+            if (turn >= 0) gameState.setCurrentPlayerIndex(turn);
+            if (phase >= 0) gameState.setCurrentPhase(phase);
 
             gameState.setBlackHoleUsed(blackHoleUsed);
             gameState.setGameOver(gameOver);
@@ -1260,12 +882,8 @@ public class GameWindow extends JFrame {
             }
 
             if (endTurnButton != null) {
-                boolean canEndTurn = !gameOver && myPlayer != null && myPlayer.isActive();
-
-                if (client != null) {
-                    canEndTurn = canEndTurn && gameState.getCurrentPlayer() == myPlayer;
-                }
-
+                boolean canEndTurn = !gameOver && myPlayer != null && myPlayer.isActive()
+                        && gameState.getCurrentPlayer() == myPlayer;
                 endTurnButton.setEnabled(canEndTurn);
             }
 
@@ -1273,7 +891,6 @@ public class GameWindow extends JFrame {
                 if (endTurnButton != null) {
                     endTurnButton.setEnabled(false);
                 }
-
                 setStatus("คุณแพ้แล้ว — เด็คหมด (Deck Out)");
             }
         }
@@ -1302,14 +919,8 @@ public class GameWindow extends JFrame {
     }
 
     private static String phaseName(int phase) {
-        if (phase == 1) {
-            return "จั่ว";
-        }
-
-        if (phase == 3) {
-            return "จบ";
-        }
-
+        if (phase == 1) return "จั่ว";
+        if (phase == 3) return "จบ";
         return "เล่น";
     }
 
@@ -1318,104 +929,15 @@ public class GameWindow extends JFrame {
     }
 
     private Image loadCardImage(Card card) {
-        if (card == null) {
-            return null;
-        }
-
+        if (card == null) return null;
         String path = ImgPath.get(card.getName());
-
-        if (path == null) {
-            return null;
-        }
+        if (path == null) return null;
 
         Image img = new ImageIcon(path).getImage();
-
-        if (img.getWidth(null) <= 0) {
-            return null;
-        }
-
-        return img;
-    }
-
-    public void loadDemo() {
-        Player me = new Player("YOU");
-        Player north = new Player("NOVA");
-        Player west = new Player("ORBIT");
-        Player east = new Player("COMET");
-
-        me.placeStar(star("Earth", 5, 3));
-
-        StarCard damagedMars = star("Mars", 3, 4);
-        damagedMars.takeDamage(2);
-        me.placeStar(damagedMars);
-
-        me.placeStar(star("Jupiter", 1, 2));
-
-        north.placeStar(star("Venus", 2, 1));
-        north.placeStar(star("Saturn", 1, 5));
-
-        west.placeStar(star("Mercury", 3, 0));
-        west.placeStar(star("Uranus", 1, 6));
-
-        east.placeStar(star("Neptune", 2, 7));
-        east.placeStar(star("The Sun", 3, 8));
-
-        me.addToDropZone(star("The Sun", 3, 8));
-
-        me.addCardToHand(star("Neptune", 2, 0));
-        me.addCardToHand(star("Mercury", 3, 1));
-        me.addCardToHand(new MeteorStrike("DEMO-METEOR", ImgPath.get("Meteor Strike")));
-        me.addCardToHand(new Supernova("DEMO-SUPERNOVA", ImgPath.get("Super Nova")));
-        me.addCardToHand(new Pulsar("DEMO-PULSAR", ImgPath.get("Pulsar")));
-        me.addCardToHand(new ForceField("DEMO-FORCE", ImgPath.get("Force Field")));
-        me.addCardToHand(new NebulaCloak("DEMO-CLOAK", ImgPath.get("Nebula Cloak")));
-        me.addCardToHand(new StellarRegeneration("DEMO-REGEN", ImgPath.get("Stellar Regeneration")));
-        me.addCardToHand(new SpaceProbe("DEMO-PROBE", ImgPath.get("Space Probe")));
-        me.addCardToHand(new WormHole("DEMO-WORM", ImgPath.get("Worm Hole")));
-        me.addCardToHand(new BigBang("DEMO-BIGBANG", ImgPath.get("Big Bang")));
-        me.addCardToHand(new BlackHole("DEMO-BLACKHOLE", ImgPath.get("Black Hole")));
-
-        north.addCardToHand(star("Venus", 2, 0));
-        north.addCardToHand(star("Earth", 5, 1));
-        north.addCardToHand(new MeteorStrike("NOVA-METEOR", ImgPath.get("Meteor Strike")));
-        north.addCardToHand(new SpaceProbe("NOVA-PROBE", ImgPath.get("Space Probe")));
-        north.addCardToHand(new ForceField("NOVA-FORCE", ImgPath.get("Force Field")));
-
-        west.addCardToHand(star("Mercury", 3, 0));
-        west.addCardToHand(star("Mars", 3, 1));
-        west.addCardToHand(new Supernova("ORBIT-SUPERNOVA", ImgPath.get("Super Nova")));
-        west.addCardToHand(new NebulaCloak("ORBIT-CLOAK", ImgPath.get("Nebula Cloak")));
-        west.addCardToHand(new StellarRegeneration("ORBIT-REGEN", ImgPath.get("Stellar Regeneration")));
-
-        east.addCardToHand(star("Neptune", 2, 0));
-        east.addCardToHand(star("Jupiter", 1, 1));
-        east.addCardToHand(new Pulsar("COMET-PULSAR", ImgPath.get("Pulsar")));
-        east.addCardToHand(new WormHole("COMET-WORM", ImgPath.get("Worm Hole")));
-        east.addCardToHand(new BigBang("COMET-BIGBANG", ImgPath.get("Big Bang")));
-
-        List<Player> players = new ArrayList<>();
-        players.add(me);
-        players.add(north);
-        players.add(west);
-        players.add(east);
-
-        deckCounts.clear();
-
-        for (Player player : players) {
-            deckCounts.put(player, player.getDeck().size());
-        }
-
-        setPlayers(players);
-        boardPanel.setDeckCounts(deckCounts);
-        setMyPlayer(me);
-        gameState = new GameState(players);
-
-        updateOpponentHands(5, 5, 5);
-        setStatus("เดโมพร้อมเล่น — เลือกการ์ดในมือ (AP 2, กดจบเทิร์นเพื่อรีเซ็ต)");
+        return img.getWidth(null) <= 0 ? null : img;
     }
 
     private static class SideHandPanel extends JPanel {
-
         SideHandPanel() {
             setOpaque(false);
             setLayout(null);
@@ -1424,10 +946,7 @@ public class GameWindow extends JFrame {
         @Override
         public void doLayout() {
             int count = getComponentCount();
-
-            if (count == 0) {
-                return;
-            }
+            if (count == 0) return;
 
             int gap = 6;
             int cardW = Math.min(110, Math.max(52, getWidth() - gap * 2));
@@ -1449,17 +968,5 @@ public class GameWindow extends JFrame {
                 y += cardH + gap;
             }
         }
-    }
-
-    private static StarCard star(String name, int hp, int orbit) {
-        return new StarCard("DEMO-" + name + "-" + orbit, name, hp, ImgPath.get(name), orbit);
-    }
-
-    public static void main(String[] args) {
-        SwingUtilities.invokeLater(() -> {
-            GameWindow window = new GameWindow();
-            window.loadDemo();
-            window.setVisible(true);
-        });
     }
 }

@@ -27,4 +27,14 @@ public class ForceField extends SpecialCard
 
         owner.addShield(targetStar);
     }
+
+    @Override
+    public String getTargetType() {
+        return SpecialCard.TARGET_ALLY_STAR;
+    }
+
+    @Override
+    public String getPromptMessage() {
+        return "Force Field: เลือกดาวของตนเองเพื่อติดโล่ 1 ครั้ง";
+    }
 }

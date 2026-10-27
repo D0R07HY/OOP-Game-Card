@@ -26,4 +26,14 @@ public class SpaceProbe extends SpecialCard
                 owner.addCardToHand(drawn);
             }
     }
+
+    @Override
+    public String getTargetType() {
+        return SpecialCard.TARGET_NONE;
+    }
+
+    @Override
+    public String getPromptMessage() {
+        return "Space Probe: จั่วการ์ด 2 ใบ";
+    }
 }

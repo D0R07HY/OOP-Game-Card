@@ -27,4 +27,14 @@ public class NebulaCloak extends SpecialCard
 
         owner.addCloak(targetStar);
     }
+
+    @Override
+    public String getTargetType() {
+        return SpecialCard.TARGET_ALLY_STAR;
+    }
+
+    @Override
+    public String getPromptMessage() {
+        return "Nebula Cloak: เลือกดาวของตนเองเพื่อซ่อนจากเป้าหมายโจมตี";
+    }
 }

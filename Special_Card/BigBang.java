@@ -66,4 +66,14 @@ public class BigBang extends SpecialCard
                     }
             }
     }
+
+    @Override
+    public String getTargetType() {
+        return SpecialCard.TARGET_NONE;
+    }
+
+    @Override
+    public String getPromptMessage() {
+        return "Big Bang: นำ The Sun ลงสนามและฟื้นฟู HP ดาวทุกดวง";
+    }
 }

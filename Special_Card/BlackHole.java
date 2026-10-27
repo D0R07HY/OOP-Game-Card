@@ -33,4 +33,14 @@ public class BlackHole extends SpecialCard
 
         state.setBlackHoleUsed(true);
     }
+
+    @Override
+    public String getTargetType() {
+        return SpecialCard.TARGET_NONE;
+    }
+
+    @Override
+    public String getPromptMessage() {
+        return "Black Hole: ทำลายดาวทุกดวงบนสนาม";
+    }
 }

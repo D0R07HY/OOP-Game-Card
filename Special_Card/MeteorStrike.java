@@ -1,36 +1,36 @@
-public class MeteorStrike extends SpecialCard 
+public class MeteorStrike extends SpecialCard
 {
 
-    public MeteorStrike(String id, String imagePath) 
+    public MeteorStrike(String id, String imagePath)
     {
         super(id, "Meteor Strike", SpecialCard.CATEGORY_ATTACK, imagePath);
     }
 
     @Override
-    public void playEffect(Player owner, Player target, StarCard targetStar, GameState state) 
+    public void playEffect(Player owner, Player target, StarCard targetStar, GameState state)
     {
-        if (owner == null || target == null || targetStar == null) 
+        if (owner == null || target == null || targetStar == null)
             {
                 return;
             }
 
         int pos = targetStar.getOrbitPosition();
-        if (pos < 0 || pos >= target.getField().length) 
+        if (pos < 0 || pos >= target.getField().length)
             {
                 return;
             }
 
-        if (target.getField()[pos] != targetStar) 
+        if (target.getField()[pos] != targetStar)
             {
                 return;
             }
 
-        if (target.isCloaked(targetStar)) 
+        if (target.isCloaked(targetStar))
             {
                 return;
             }
 
-        if (target.isShielded(targetStar)) 
+        if (target.isShielded(targetStar))
             {
                 target.removeShield(targetStar);
                 return;
@@ -38,10 +38,20 @@ public class MeteorStrike extends SpecialCard
 
         targetStar.takeDamage(2);
 
-        if (targetStar.isDestroyed()) 
+        if (targetStar.isDestroyed())
             {
                 target.removeStarFromField(targetStar);
                 target.addToDropZone(targetStar);
             }
+    }
+
+    @Override
+    public String getTargetType() {
+        return SpecialCard.TARGET_ENEMY_STAR;
+    }
+
+    @Override
+    public String getPromptMessage() {
+        return "Meteor Strike: เลือกดาวของคู่แข่ง 1 ดวง (ดาเมจ 2)";
     }
 }

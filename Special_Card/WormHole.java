@@ -45,4 +45,14 @@ public class WormHole extends SpecialCard
         owner.addCardToHand(taken);
         target.addCardToHand(giveCard);
     }
+
+    @Override
+    public String getTargetType() {
+        return SpecialCard.TARGET_ENEMY_PLAYER;
+    }
+
+    @Override
+    public String getPromptMessage() {
+        return "Worm Hole: เลือกผู้เล่นเป้าหมายที่จะแลกการ์ด";
+    }
 }

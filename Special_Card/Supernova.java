@@ -41,4 +41,14 @@ public class Supernova extends SpecialCard
                     }
             }
     }
+
+    @Override
+    public String getTargetType() {
+        return SpecialCard.TARGET_ENEMY_PLAYER;
+    }
+
+    @Override
+    public String getPromptMessage() {
+        return "Supernova: เลือกผู้เล่นเป้าหมาย (ดาเมจทุกดาว 1)";
+    }
 }

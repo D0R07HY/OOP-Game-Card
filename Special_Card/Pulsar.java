@@ -56,4 +56,14 @@ public class Pulsar extends SpecialCard
         target.removeStarFromField(targetStar);
         target.addToDropZone(targetStar);
     }
+
+    @Override
+    public String getTargetType() {
+        return SpecialCard.TARGET_ENEMY_STAR;
+    }
+
+    @Override
+    public String getPromptMessage() {
+        return "Pulsar: เลือกดาวคู่แข่งที่จะทำลาย";
+    }
 }

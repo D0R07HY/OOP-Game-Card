@@ -27,4 +27,14 @@ public class StellarRegeneration extends SpecialCard
 
         targetStar.heal(3);
     }
+
+    @Override
+    public String getTargetType() {
+        return SpecialCard.TARGET_ALLY_STAR;
+    }
+
+    @Override
+    public String getPromptMessage() {
+        return "Stellar Regeneration: เลือกดาวของตนเองเพื่อฟื้นฟู 3 HP";
+    }
 }

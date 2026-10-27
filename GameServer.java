@@ -152,9 +152,6 @@ public class GameServer implements ServerContext {
 
                 Player current = gameState.getCurrentPlayer();
 
-                // End Phase: เช็คชนะ -> เช็ค Hand Limit -> สลับเทิร์น
-                // บัฟที่หมดอายุ (Nebula Cloak) จะถูกลบตอนเริ่มเทิร์นถัดไปของเจ้าของ
-                // เพื่อให้ยังมีผลตลอดเทิร์นของคู่แข่งตามกติกาการ์ด
                 gameState.setCurrentPhase(3);
 
                 if (gameState.checkWinCondition(current)) {
@@ -308,125 +305,66 @@ public class GameServer implements ServerContext {
     private void playSpecial(ClientHandler sender, Player owner, SpecialCard card,
                              Player target, StarCard targetStar, Card cost) {
         String name = card.getName();
+        String targetType = card.getTargetType();
 
         if (target != null && !target.isActive()) {
             sendError(sender, "INVALID_TARGET");
             return;
         }
 
-        if (name.equals("Meteor Strike")) {
-            if (target == null || target == owner || targetStar == null) {
-                sendError(sender, "INVALID_TARGET");
-                return;
-            }
-
-            if (target.isCloaked(targetStar)) {
-                sendError(sender, "INVALID_TARGET");
-                return;
-            }
-
-            if (!spendActionPoint(sender, owner)) {
-                return;
-            }
-
-            card.playEffect(owner, target, targetStar, gameState);
-            finishSpecial(owner, card);
-        } else if (name.equals("Supernova")) {
-            if (target == null || target == owner || !hasTargetableStar(target)) {
-                sendError(sender, "INVALID_TARGET");
-                return;
-            }
-
-            if (!spendActionPoint(sender, owner)) {
-                return;
-            }
-
-            card.playEffect(owner, target, null, gameState);
-            finishSpecial(owner, card);
-        } else if (name.equals("Pulsar")) {
-            if (target == null || target == owner || targetStar == null || cost == null) {
-                sendError(sender, "INVALID_TARGET");
-                return;
-            }
-
-            if (target.isCloaked(targetStar)) {
-                sendError(sender, "INVALID_TARGET");
-                return;
-            }
-
+        // ตรวจสอบเงื่อนไขเฉพาะเจาะจงของการ์ดบางใบ
+        if (name.equals("Pulsar")) {
             if (owner.isPulsarUsedThisTurn()) {
                 sendError(sender, "PULSAR_ALREADY_USED");
                 return;
             }
-
-            if (!spendActionPoint(sender, owner)) {
+            if (cost == null) {
+                sendError(sender, "INVALID_COST");
                 return;
             }
-
-            ((Pulsar) card).playEffect(owner, target, targetStar, cost, gameState);
-            finishSpecial(owner, card);
-        } else if (name.equals("Force Field")
-                || name.equals("Nebula Cloak")
-                || name.equals("Stellar Regeneration")) {
-            if (target != owner || targetStar == null) {
-                sendError(sender, "INVALID_TARGET");
-                return;
-            }
-
-            int pos = targetStar.getOrbitPosition();
-
-            if (pos < 0 || pos >= owner.getField().length || owner.getField()[pos] != targetStar) {
-                sendError(sender, "INVALID_TARGET");
-                return;
-            }
-
-            if (!spendActionPoint(sender, owner)) {
-                return;
-            }
-
-            card.playEffect(owner, owner, targetStar, gameState);
-            finishSpecial(owner, card);
-        } else if (name.equals("Space Probe")) {
-            if (!spendActionPoint(sender, owner)) {
-                return;
-            }
-
-            card.playEffect(owner, null, null, gameState);
-            finishSpecial(owner, card);
-        } else if (name.equals("Big Bang")) {
-            if (!spendActionPoint(sender, owner)) {
-                return;
-            }
-
-            card.playEffect(owner, null, null, gameState);
-            finishSpecial(owner, card);
         } else if (name.equals("Black Hole")) {
             if (gameState.isBlackHoleUsed()) {
                 sendError(sender, "BLACK_HOLE_ALREADY_USED");
                 return;
             }
-
-            if (!spendActionPoint(sender, owner)) {
-                return;
-            }
-
-            card.playEffect(owner, null, null, gameState);
-            finishSpecial(owner, card);
         } else if (name.equals("Worm Hole")) {
-            if (target == null || target == owner || cost == null || target.getHand().isEmpty()) {
+            if (cost == null || target == null || target.getHand().isEmpty()) {
                 sendError(sender, "INVALID_TARGET");
                 return;
             }
+        }
 
-            if (!spendActionPoint(sender, owner)) {
+        // ตรวจสอบความถูกต้องของเป้าหมายตาม TargetType
+        if (SpecialCard.TARGET_ENEMY_STAR.equals(targetType)) {
+            if (target == null || target == owner || targetStar == null || target.isCloaked(targetStar)) {
+                sendError(sender, "INVALID_TARGET");
                 return;
             }
-
-            ((WormHole) card).playEffectWithCard(owner, target, cost, gameState);
-            finishSpecial(owner, card);
-        } else {
-            sendError(sender, "UNSUPPORTED_CARD");
+        } else if (SpecialCard.TARGET_ALLY_STAR.equals(targetType)) {
+            if (target != owner || targetStar == null) {
+                sendError(sender, "INVALID_TARGET");
+                return;
+            }
+        } else if (SpecialCard.TARGET_ENEMY_PLAYER.equals(targetType)) {
+            if (target == null || target == owner) {
+                sendError(sender, "INVALID_TARGET");
+                return;
+            }
         }
+
+        if (!spendActionPoint(sender, owner)) {
+            return;
+        }
+
+        if (name.equals("Pulsar")) {
+            ((Pulsar) card).playEffect(owner, target, targetStar, cost, gameState);
+        } else if (name.equals("Worm Hole")) {
+            ((WormHole) card).playEffectWithCard(owner, target, cost, gameState);
+        } else {
+            card.playEffect(owner, target, targetStar, gameState);
+        }
+
+        finishSpecial(owner, card);
     }
 
     private boolean spendActionPoint(ClientHandler sender, Player owner) {
@@ -447,16 +385,6 @@ public class GameServer implements ServerContext {
 
         gameState.checkWinCondition(owner);
         broadcastState();
-    }
-
-    private boolean hasTargetableStar(Player player) {
-        for (StarCard star : player.getField()) {
-            if (star != null && !player.isCloaked(star)) {
-                return true;
-            }
-        }
-
-        return false;
     }
 
     private Card findCardInHand(Player player, String cardId) {
@@ -493,16 +421,12 @@ public class GameServer implements ServerContext {
         }
     }
 
-    // Draw Phase: จั่ว 1 ใบอัตโนมัติ; ถ้าเด็คหมดผู้เล่นคนนั้นแพ้ทันที (Deck Out)
     private boolean startTurn(Player player) {
         if (player == null || gameState == null) {
             return false;
         }
 
         gameState.setCurrentPhase(1);
-
-        // เริ่มเทิร์นของเจ้าของ: บัฟป้องกันที่หมดอายุแล้ว (Nebula Cloak)
-        // ถูกลบตรงนี้ เพื่อให้ cloak ยังมีผลตลอดเทิร์นของคู่แข่งก่อนหน้า
         player.clearExpiredBuffs();
 
         Card card = player.getDeck().drawCard();
@@ -525,7 +449,6 @@ public class GameServer implements ServerContext {
         return startTurn(gameState.getCurrentPlayer());
     }
 
-    // End Phase: มือเกิน 7 ใบ บังคับทิ้งใบล่าสุดลง Drop Zone จนเหลือ 7
     private void enforceHandLimit(Player player) {
         if (player == null) {
             return;
