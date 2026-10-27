@@ -141,7 +141,7 @@ public class EntryWindow extends JFrame {
 
     private void openWaitingRoom(boolean isHost, String connectIp, int port, String username, String displayIp) {
         GameClient client = new GameClient();
-        WaitingRoomWindow room = new WaitingRoomWindow(client, isHost, displayIp, port);
+        WaitingRoomWindow room = new WaitingRoomWindow(client, isHost, displayIp, port, username);
         client.setOnMessage(room::handleMessage);
 
         if (!client.connect(connectIp, port, username)) {

@@ -1,18 +1,19 @@
-import java.io.*;
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.io.OutputStreamWriter;
+import java.io.PrintWriter;
 import java.net.Socket;
-<<<<<<< HEAD
-import javax.swing.SwingUtilities;
-=======
 import java.nio.charset.StandardCharsets;
 import java.util.function.Consumer;
->>>>>>> ce10ad5fbe026dc001290b60a89f17b1836dee54
+import javax.swing.SwingUtilities;
 
 public class GameClient {
     private Socket sk;
     private BufferedReader in;
     private PrintWriter out;
-    private GameWindow ui;
-    private Consumer<String> onMessage;
+    private volatile GameWindow ui;
+    private volatile Consumer<String> onMessage;
 
     public void setUi(GameWindow ui) {
         this.ui = ui;
@@ -43,25 +44,18 @@ public class GameClient {
     }
 
     public void startListening() {
-        if (in == null) return;
+        if (in == null) {
+            return;
+        }
 
         Thread listener = new Thread(() -> {
             try {
                 String line;
                 while ((line = in.readLine()) != null) {
                     System.out.println("[Server] " + line);
-<<<<<<< HEAD
                     String message = line;
 
-                    if (ui != null) {
-                        SwingUtilities.invokeLater(() -> ui.updateBoardState(message));
-=======
-                    if (onMessage != null) {
-                        onMessage.accept(line);
-                    } else if (ui != null) {
-                        ui.updateBoardState(line);
->>>>>>> ce10ad5fbe026dc001290b60a89f17b1836dee54
-                    }
+                    SwingUtilities.invokeLater(() -> dispatch(message));
                 }
             } catch (IOException e) {
                 System.out.println("[Client] Connection closed");
@@ -69,5 +63,24 @@ public class GameClient {
         });
         listener.setDaemon(true);
         listener.start();
+    }
+
+    private void dispatch(String message) {
+        Consumer<String> listener = onMessage;
+
+        if (listener != null) {
+            listener.accept(message);
+        } else if (ui != null) {
+            ui.updateBoardState(message);
+        }
+    }
+
+    public void close() {
+        try {
+            if (sk != null) {
+                sk.close();
+            }
+        } catch (IOException ignored) {
+        }
     }
 }

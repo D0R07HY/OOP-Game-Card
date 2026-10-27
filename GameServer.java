@@ -60,13 +60,20 @@ public class GameServer implements ServerContext {
 
     @Override
     public synchronized void processClientAction(String action, ClientHandler sender) {
-        if (action == null || action.isEmpty()) return;
+        if (action == null || action.isEmpty()) {
+            return;
+        }
 
         String[] parts = action.split("#");
         String command = parts[0];
 
         switch (command) {
             case "JOIN": {
+                if (gameState != null) {
+                    sender.sendMessage("ERR#ALREADY_STARTED");
+                    break;
+                }
+
                 if (parts.length < 2) {
                     sender.sendMessage("ERR#INVALID_NAME");
                     break;
@@ -84,7 +91,8 @@ public class GameServer implements ServerContext {
                 }
 
                 sender.setPlayer(new Player(username));
-                System.out.println("[Server] Player " + username + " joined the room (" + countPlayers() + "/" + MAX_PLAYERS + ")");
+                System.out.println("[Server] Player " + username + " joined the room ("
+                        + countPlayers() + "/" + MAX_PLAYERS + ")");
                 broadcastLobby();
                 break;
             }
@@ -99,7 +107,7 @@ public class GameServer implements ServerContext {
                 // TODO: ใส่ลอจิกการเล่นการ์ด เช่น วางดาว โจมตี
                 break;
 
-            case "START":
+            case "START": {
                 if (gameState != null) {
                     sender.sendMessage("ERR#ALREADY_STARTED");
                     break;
@@ -112,15 +120,33 @@ public class GameServer implements ServerContext {
                     sender.sendMessage("ERR#NEED_MORE_PLAYERS");
                     break;
                 }
-                gameState = new GameState(buildPlayerList());
-                System.out.println("[Server] Game started with " + countPlayers() + " players");
-                broadcast("SYSTEM#GAME_START");
+
+                List<Player> players = buildPlayerList();
+                gameState = new GameState(players);
+                gameState.addChangeListener(this::broadcastState);
+
+                StringBuilder start = new StringBuilder("SYSTEM#GAME_START");
+
+                for (Player player : players) {
+                    start.append("#").append(player.getUsername());
+                }
+
+                System.out.println("[Server] Game started with " + players.size() + " players");
+                broadcast(start.toString());
+                broadcastState();
                 break;
+            }
 
             case "END_TURN":
-                if (gameState != null) {
-                    gameState.nextTurn();
+                if (gameState == null) {
+                    sender.sendMessage("ERR#GAME_NOT_READY");
+                    break;
                 }
+                if (sender.getPlayer() != gameState.getCurrentPlayer()) {
+                    sender.sendMessage("ERR#NOT_YOUR_TURN");
+                    break;
+                }
+                gameState.nextTurn();
                 break;
 
             default:
@@ -132,11 +158,15 @@ public class GameServer implements ServerContext {
     @Override
     public synchronized void removeClient(ClientHandler handler) {
         clients.remove(handler);
+
         if (handler.getPlayer() != null) {
-            System.out.println("[Server] Player " + handler.getPlayer().getUsername() + " left the game");
+            System.out.println("[Server] Player " + handler.getPlayer().getUsername() + " left the room");
             broadcast("SYSTEM#" + handler.getPlayer().getUsername() + "_LEFT");
         }
-<<<<<<< HEAD
+
+        if (gameState == null) {
+            broadcastLobby();
+        }
     }
 
     private void broadcastState() {
@@ -145,40 +175,24 @@ public class GameServer implements ServerContext {
         }
     }
 
-    private void checkAndStartGame() {
-        if (clients.size() == MAX_PLAYERS) {
-            List<Player> players = new ArrayList<>();
-            for (ClientHandler client : clients) {
-                if (client.getPlayer() == null) return;
-                players.add(client.getPlayer());
-            }
-            // สร้าง GameState เมื่อทุกคนส่งชื่อมาครบแล้ว
-            gameState = new GameState(players);
-            gameState.addChangeListener(this::broadcastState);
-            System.out.println("[Server] ผู้เล่นครบ " + MAX_PLAYERS + " คน!");
-            broadcast("SYSTEM#GAME_START");
-            broadcastState();
-=======
-        if (gameState == null) {
-            broadcastLobby();
->>>>>>> ce10ad5fbe026dc001290b60a89f17b1836dee54
-        }
-    }
-
     private void broadcastLobby() {
         StringBuilder lobby = new StringBuilder("LOBBY");
+
         for (ClientHandler client : clients) {
             Player player = client.getPlayer();
+
             if (player != null) {
                 lobby.append("#").append(player.getUsername());
             }
         }
+
         broadcast(lobby.toString());
     }
 
     private boolean hasPlayerName(String username) {
         for (ClientHandler client : clients) {
             Player player = client.getPlayer();
+
             if (player != null && player.getUsername().equals(username)) {
                 return true;
             }
@@ -197,21 +211,25 @@ public class GameServer implements ServerContext {
 
     private int countPlayers() {
         int count = 0;
+
         for (ClientHandler client : clients) {
             if (client.getPlayer() != null) {
                 count++;
             }
         }
+
         return count;
     }
 
     private List<Player> buildPlayerList() {
         List<Player> players = new ArrayList<>();
+
         for (ClientHandler client : clients) {
             if (client.getPlayer() != null) {
                 players.add(client.getPlayer());
             }
         }
+
         return players;
     }
 }

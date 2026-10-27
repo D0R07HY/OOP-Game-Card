@@ -1,5 +1,7 @@
 import java.awt.BorderLayout;
 import java.awt.GridLayout;
+import java.util.ArrayList;
+import java.util.List;
 import javax.swing.BorderFactory;
 import javax.swing.JButton;
 import javax.swing.JFrame;
@@ -14,13 +16,17 @@ public class WaitingRoomWindow extends JFrame {
 
     private final GameClient client;
     private final boolean isHost;
+    private final String username;
+    private final List<String> lobbyNames;
     private final JLabel countLabel;
     private final JTextArea namesArea;
     private final JButton startButton;
 
-    public WaitingRoomWindow(GameClient client, boolean isHost, String displayIp, int port) {
+    public WaitingRoomWindow(GameClient client, boolean isHost, String displayIp, int port, String username) {
         this.client = client;
         this.isHost = isHost;
+        this.username = username;
+        this.lobbyNames = new ArrayList<>();
 
         setTitle(isHost ? "My Room" : "Joined Room");
         setSize(380, 340);
@@ -75,13 +81,14 @@ public class WaitingRoomWindow extends JFrame {
         SwingUtilities.invokeLater(() -> {
             if (message.startsWith("LOBBY#")) {
                 updateLobby(message);
-            } else if (message.equals("SYSTEM#GAME_START")) {
-                GameWindow window = new GameWindow();
-                window.setVisible(true);
-                dispose();
+            } else if (message.startsWith("SYSTEM#GAME_START")) {
+                startGame(message);
             } else if (message.startsWith("ERR#")) {
                 JOptionPane.showMessageDialog(this, errorText(message));
-                if (message.equals("ERR#SERVER_FULL") || message.equals("ERR#NAME_TAKEN")) {
+
+                if (message.equals("ERR#SERVER_FULL")
+                        || message.equals("ERR#NAME_TAKEN")
+                        || message.equals("ERR#ALREADY_STARTED")) {
                     dispose();
                 }
             }
@@ -92,14 +99,73 @@ public class WaitingRoomWindow extends JFrame {
         String[] parts = message.split("#");
         StringBuilder names = new StringBuilder();
 
+        lobbyNames.clear();
+
         for (int i = 1; i < parts.length; i++) {
-            names.append(i).append(". ").append(parts[i]).append("\n");
+            String name = parts[i].trim();
+
+            if (name.isEmpty()) {
+                continue;
+            }
+
+            lobbyNames.add(name);
+            names.append(lobbyNames.size()).append(". ").append(name).append("\n");
         }
 
-        int playerCount = parts.length - 1;
+        int playerCount = lobbyNames.size();
         namesArea.setText(names.toString());
         countLabel.setText("Players in room: " + playerCount + "/4");
         startButton.setEnabled(isHost && playerCount >= 2);
+    }
+
+    private void startGame(String message) {
+        String[] parts = message.split("#", -1);
+        List<String> names = new ArrayList<>();
+
+        for (int i = 2; i < parts.length; i++) {
+            String name = parts[i].trim();
+
+            if (!name.isEmpty()) {
+                names.add(name);
+            }
+        }
+
+        if (names.isEmpty()) {
+            names.addAll(lobbyNames);
+        }
+
+        if (names.isEmpty()) {
+            JOptionPane.showMessageDialog(this, "Cannot start game: player list is empty");
+            return;
+        }
+
+        List<Player> players = new ArrayList<>();
+        Player me = null;
+
+        for (String name : names) {
+            Player player = new Player(name);
+            players.add(player);
+
+            if (name.equals(username)) {
+                me = player;
+            }
+        }
+
+        if (me == null) {
+            me = players.get(0);
+            System.out.println("[Lobby] Username not found in player list, using first player");
+        }
+
+        GameWindow window = new GameWindow();
+        window.setPlayers(players);
+        window.setMyPlayer(me);
+        window.setGameClient(client);
+
+        client.setUi(window);
+        client.setOnMessage(window::updateBoardState);
+
+        window.setVisible(true);
+        dispose();
     }
 
     private String errorText(String message) {

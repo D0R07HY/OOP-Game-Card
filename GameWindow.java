@@ -6,7 +6,6 @@ import java.awt.FlowLayout;
 import java.awt.Font;
 import java.awt.GraphicsEnvironment;
 import java.awt.Image;
-<<<<<<< HEAD
 import java.awt.Rectangle;
 import java.awt.event.ActionEvent;
 import java.util.ArrayList;
@@ -21,11 +20,6 @@ import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.SwingUtilities;
-=======
-import java.util.*;
-import java.util.function.Consumer;
-import javax.swing.*;
->>>>>>> ce10ad5fbe026dc001290b60a89f17b1836dee54
 
 public class GameWindow extends JFrame {
 
@@ -44,6 +38,7 @@ public class GameWindow extends JFrame {
     private Player myPlayer;
     private List<Player> players;
     private GameState gameState;
+    private GameClient client;
     private Consumer<Card> onCardSelected;
 
     private Card pendingCard;
@@ -158,6 +153,10 @@ public class GameWindow extends JFrame {
         this.onCardSelected = onCardSelected;
     }
 
+    public void setGameClient(GameClient client) {
+        this.client = client;
+    }
+
     public void updateMyHand(List<Card> hand) {
         myHandPanel.removeAll();
 
@@ -185,28 +184,8 @@ public class GameWindow extends JFrame {
                 cardBtn.setToolTipText(card.getName());
                 cardBtn.setSelected(card == pendingCard);
 
-<<<<<<< HEAD
                 cardBtn.setOnClick(() -> handleHandCardClick(card));
-=======
-                cardBtn.setOnClick(() -> {
-                    System.out.println("[UI] Card clicked: " + card.getName());
 
-                    if (myPlayer != null && myPlayer.getHand().contains(card)) {
-                        myPlayer.removeCardFromHand(card);
-                    }
-
-                    boardPanel.playCardToDropZone(card, img);
-
-                    if (myPlayer != null) {
-                        updateMyHand(myPlayer.getHand());
-                    }
-
-                    if (onCardSelected != null) {
-                        onCardSelected.accept(card);
-                    }
-                });
-
->>>>>>> ce10ad5fbe026dc001290b60a89f17b1836dee54
                 myHandPanel.add(cardBtn);
             }
         }
@@ -634,11 +613,11 @@ public class GameWindow extends JFrame {
             updateMyHand(myPlayer.getHand());
         }
 
-        if (players != null && players.size() >= 4) {
-            updateOpponentHands(
-                    players.get(1).getHand().size(),
-                    players.get(2).getHand().size(),
-                    players.get(3).getHand().size());
+        if (players != null) {
+            int topCount = players.size() > 1 ? players.get(1).getHand().size() : 0;
+            int leftCount = players.size() > 2 ? players.get(2).getHand().size() : 0;
+            int rightCount = players.size() > 3 ? players.get(3).getHand().size() : 0;
+            updateOpponentHands(topCount, leftCount, rightCount);
         }
 
         boardPanel.revalidate();
@@ -732,6 +711,13 @@ public class GameWindow extends JFrame {
         }
 
         cancelPending();
+
+        if (client != null) {
+            client.sendAction("END_TURN");
+            setStatus("ส่งคำสั่งจบเทิร์นแล้ว กำลังรอเซิร์ฟเวอร์...");
+            return;
+        }
+
         myPlayer.resetActionPoints();
         myPlayer.clearExpiredBuffs();
 
@@ -776,7 +762,6 @@ public class GameWindow extends JFrame {
     }
 
     public void updateBoardState(String state) {
-<<<<<<< HEAD
         System.out.println("[UI] อัปเดตกระดานด้วยข้อมูล: " + state);
 
         if (state == null || state.isEmpty()) {
@@ -931,14 +916,27 @@ public class GameWindow extends JFrame {
             if (winnerIndex >= 0 && winnerIndex < targetPlayers.size()) {
                 gameState.setWinner(targetPlayers.get(winnerIndex));
             }
+
+            if (!gameOver && gameState.getCurrentPlayer() != null) {
+                Player current = gameState.getCurrentPlayer();
+
+                if (current == myPlayer) {
+                    setStatus("ถึงเทิร์นของคุณ — AP " + current.getActionPoints());
+                } else {
+                    setStatus("รอเทิร์นของ " + current.getUsername());
+                }
+            }
         }
 
         if (myPlayer != null) {
             updateMyHand(myPlayer.getHand());
         }
 
-        if (targetPlayers.size() >= 4) {
-            updateOpponentHands(handCounts[1], handCounts[2], handCounts[3]);
+        if (targetPlayers.size() >= 2) {
+            int topCount = handCounts[1];
+            int leftCount = targetPlayers.size() > 2 ? handCounts[2] : 0;
+            int rightCount = targetPlayers.size() > 3 ? handCounts[3] : 0;
+            updateOpponentHands(topCount, leftCount, rightCount);
         }
 
         boardPanel.revalidate();
@@ -951,9 +949,6 @@ public class GameWindow extends JFrame {
         } catch (NumberFormatException e) {
             return fallback;
         }
-=======
-        System.out.println("[UI] Update board with state: " + state);
->>>>>>> ce10ad5fbe026dc001290b60a89f17b1836dee54
     }
 
     public BoardPanel getBoardPanel() {

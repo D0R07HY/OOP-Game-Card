@@ -29,7 +29,6 @@ public class BigBang extends SpecialCard
                         StarCard[] field = owner.getField();
                         int emptyPos = -1;
 
-<<<<<<< HEAD
                         for (int i = 0; i < field.length; i++)
                             {
                                 if (field[i] == null)
@@ -40,9 +39,6 @@ public class BigBang extends SpecialCard
                             }
 
                         if (emptyPos < 0)
-=======
-                        if (pos < 0 || pos >= owner.getField().length || !owner.placeStar(sunStar))
->>>>>>> ce10ad5fbe026dc001290b60a89f17b1836dee54
                             {
                                 owner.addToDropZone(sun);
                             }
