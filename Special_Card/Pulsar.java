@@ -19,6 +19,11 @@ public class Pulsar extends SpecialCard
                 return;
             }
 
+        if (owner.hasUsedPulsarThisTurn()) 
+            {
+                return;
+            }
+
         int pos = targetStar.getOrbitPosition();
         if (pos < 0 || pos >= target.getField().length) 
             {
@@ -50,5 +55,6 @@ public class Pulsar extends SpecialCard
 
         target.removeStarFromField(targetStar);
         target.addToDropZone(targetStar);
+        owner.markPulsarUsed();
     }
 }

@@ -1,34 +1,35 @@
-public class BigBang extends SpecialCard 
+public class BigBang extends SpecialCard
 {
-
-    public BigBang(String id, String imagePath) 
+    public BigBang(String id, String imagePath)
     {
         super(id, "Big Bang", SpecialCard.CATEGORY_SECRET, imagePath);
+
     }
 
     @Override
-    public void playEffect(Player owner, Player target, StarCard targetStar, GameState state) 
+    public void playEffect(Player owner, Player target, StarCard targetStar, GameState state)
     {
-        if (owner == null) 
+        if (owner == null)
             {
                 return;
             }
 
         Card sun = owner.takeFromDropZone("The Sun");
 
-        if (sun == null) 
+        if (sun == null)
             {
                 sun = owner.getDeck().searchAndRemove("The Sun");
             }
 
-        if (sun != null) 
+        if (sun != null)
             {
-                if (sun instanceof StarCard) 
+                if (sun instanceof StarCard)
                     {
                         StarCard sunStar = (StarCard) sun;
                         StarCard[] field = owner.getField();
                         int emptyPos = -1;
 
+<<<<<<< HEAD
                         for (int i = 0; i < field.length; i++)
                             {
                                 if (field[i] == null)
@@ -39,6 +40,9 @@ public class BigBang extends SpecialCard
                             }
 
                         if (emptyPos < 0)
+=======
+                        if (pos < 0 || pos >= owner.getField().length || !owner.placeStar(sunStar))
+>>>>>>> ce10ad5fbe026dc001290b60a89f17b1836dee54
                             {
                                 owner.addToDropZone(sun);
                             }
@@ -52,15 +56,15 @@ public class BigBang extends SpecialCard
                                     }
                             }
                     }
-                else 
+                else
                     {
                         owner.addToDropZone(sun);
                     }
             }
 
-        for (StarCard star : owner.getField()) 
+        for (StarCard star : owner.getField())
             {
-                if (star != null) 
+                if (star != null)
                     {
                         star.heal(star.getMaxHp());
                     }

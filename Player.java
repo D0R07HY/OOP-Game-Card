@@ -47,6 +47,7 @@ public class Player {
     public void resetActionPoints() {
         this.actionPoints = ACTION_POINTS_PER_TURN;
         this.pulsarUsedThisTurn = false;
+<<<<<<< HEAD
         fireStateChanged();
     }
 
@@ -67,6 +68,16 @@ public class Player {
     public void setActionPoints(int actionPoints) {
         this.actionPoints = Math.max(0, actionPoints);
         fireStateChanged();
+=======
+    }
+
+    public boolean hasUsedPulsarThisTurn() {
+        return pulsarUsedThisTurn;
+    }
+
+    public void markPulsarUsed() {
+        this.pulsarUsedThisTurn = true;
+>>>>>>> ce10ad5fbe026dc001290b60a89f17b1836dee54
     }
 
     public boolean useActionPoint(int cost) {

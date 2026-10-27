@@ -6,6 +6,7 @@ import java.awt.FlowLayout;
 import java.awt.Font;
 import java.awt.GraphicsEnvironment;
 import java.awt.Image;
+<<<<<<< HEAD
 import java.awt.Rectangle;
 import java.awt.event.ActionEvent;
 import java.util.ArrayList;
@@ -20,6 +21,11 @@ import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.SwingUtilities;
+=======
+import java.util.*;
+import java.util.function.Consumer;
+import javax.swing.*;
+>>>>>>> ce10ad5fbe026dc001290b60a89f17b1836dee54
 
 public class GameWindow extends JFrame {
 
@@ -179,7 +185,28 @@ public class GameWindow extends JFrame {
                 cardBtn.setToolTipText(card.getName());
                 cardBtn.setSelected(card == pendingCard);
 
+<<<<<<< HEAD
                 cardBtn.setOnClick(() -> handleHandCardClick(card));
+=======
+                cardBtn.setOnClick(() -> {
+                    System.out.println("[UI] Card clicked: " + card.getName());
+
+                    if (myPlayer != null && myPlayer.getHand().contains(card)) {
+                        myPlayer.removeCardFromHand(card);
+                    }
+
+                    boardPanel.playCardToDropZone(card, img);
+
+                    if (myPlayer != null) {
+                        updateMyHand(myPlayer.getHand());
+                    }
+
+                    if (onCardSelected != null) {
+                        onCardSelected.accept(card);
+                    }
+                });
+
+>>>>>>> ce10ad5fbe026dc001290b60a89f17b1836dee54
                 myHandPanel.add(cardBtn);
             }
         }
@@ -749,6 +776,7 @@ public class GameWindow extends JFrame {
     }
 
     public void updateBoardState(String state) {
+<<<<<<< HEAD
         System.out.println("[UI] อัปเดตกระดานด้วยข้อมูล: " + state);
 
         if (state == null || state.isEmpty()) {
@@ -923,6 +951,9 @@ public class GameWindow extends JFrame {
         } catch (NumberFormatException e) {
             return fallback;
         }
+=======
+        System.out.println("[UI] Update board with state: " + state);
+>>>>>>> ce10ad5fbe026dc001290b60a89f17b1836dee54
     }
 
     public BoardPanel getBoardPanel() {

@@ -9,6 +9,7 @@ public class Deck {
     }
 
   public void buildDeck(){
+    cards.push(new StarCard("S00","The Sun", 5, ImgPath.The_Sun, 8));
     for(int i = 1; i<=4; i++)
       cards.push(new StarCard("S03","Earth", 5,ImgPath.Earth,3));
   }
