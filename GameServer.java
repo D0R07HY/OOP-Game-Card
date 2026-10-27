@@ -4,6 +4,7 @@ import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.CopyOnWriteArrayList;
 
 public class GameServer implements ServerContext {
 
@@ -12,7 +13,7 @@ public class GameServer implements ServerContext {
     private GameState gameState;
 
     public GameServer() {
-        this.clients = new ArrayList<>();
+        this.clients = new CopyOnWriteArrayList<>();
         this.gameState = null;
     }
 
@@ -80,8 +81,6 @@ public class GameServer implements ServerContext {
             case "END_TURN":
                 if (gameState != null) {
                     gameState.nextTurn();
-                    // อัปเดตกระดานทั้งหมดไปให้ผู้เล่นทุกคนหลังสลับเทิร์น
-                    // broadcast(gameState.toProtocolString());
                 }
                 break;
 
@@ -100,6 +99,12 @@ public class GameServer implements ServerContext {
         }
     }
 
+    private void broadcastState() {
+        if (gameState != null) {
+            broadcast(gameState.toProtocolString());
+        }
+    }
+
     private void checkAndStartGame() {
         if (clients.size() == MAX_PLAYERS) {
             List<Player> players = new ArrayList<>();
@@ -109,8 +114,10 @@ public class GameServer implements ServerContext {
             }
             // สร้าง GameState เมื่อทุกคนส่งชื่อมาครบแล้ว
             gameState = new GameState(players);
+            gameState.addChangeListener(this::broadcastState);
             System.out.println("[Server] ผู้เล่นครบ " + MAX_PLAYERS + " คน!");
             broadcast("SYSTEM#GAME_START");
+            broadcastState();
         }
     }
 

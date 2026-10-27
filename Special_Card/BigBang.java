@@ -26,11 +26,30 @@ public class BigBang extends SpecialCard
                 if (sun instanceof StarCard) 
                     {
                         StarCard sunStar = (StarCard) sun;
-                        int pos = sunStar.getOrbitPosition();
+                        StarCard[] field = owner.getField();
+                        int emptyPos = -1;
 
-                        if (pos < 0 || pos >= owner.getField().length || !owner.placeStar(sunStar)) 
+                        for (int i = 0; i < field.length; i++)
+                            {
+                                if (field[i] == null)
+                                    {
+                                        emptyPos = i;
+                                        break;
+                                    }
+                            }
+
+                        if (emptyPos < 0)
                             {
                                 owner.addToDropZone(sun);
+                            }
+                        else
+                            {
+                                sunStar.setOrbitPosition(emptyPos);
+
+                                if (!owner.placeStar(sunStar))
+                                    {
+                                        owner.addToDropZone(sun);
+                                    }
                             }
                     }
                 else 

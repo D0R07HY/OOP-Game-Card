@@ -1,5 +1,6 @@
 import java.io.*;
 import java.net.Socket;
+import javax.swing.SwingUtilities;
 
 public class GameClient {
     private Socket sk;
@@ -37,8 +38,10 @@ public class GameClient {
                 String line;
                 while ((line = in.readLine()) != null) {
                     System.out.println("[Server] " + line);
+                    String message = line;
+
                     if (ui != null) {
-                        ui.updateBoardState(line);
+                        SwingUtilities.invokeLater(() -> ui.updateBoardState(message));
                     }
                 }
             } catch (IOException e) {

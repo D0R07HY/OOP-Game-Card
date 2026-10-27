@@ -1,12 +1,9 @@
-import java.awt.BasicStroke;
 import java.awt.Color;
 import java.awt.Cursor;
 import java.awt.Font;
 import java.awt.FontMetrics;
 import java.awt.Graphics;
-import java.awt.Graphics2D;
 import java.awt.Image;
-import java.awt.RenderingHints;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import javax.swing.JComponent;
@@ -80,18 +77,13 @@ public class CardButton extends JComponent {
 
     @Override
     protected void paintComponent(Graphics g) {
-        Graphics2D g2 = (Graphics2D) g.create();
-        g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-        g2.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BILINEAR);
+        Graphics g2 = g.create();
 
         int w = getWidth();
         int h = getHeight();
         int pad = 3;
         int cw = w - pad * 2;
         int ch = h - pad * 2;
-
-        g2.setColor(new Color(90, 30, 30, 60));
-        g2.fillRoundRect(pad + 2, pad + 3, cw, ch, 12, 12);
 
         if (faceDown) {
             drawCardBack(g2, pad, pad, cw, ch);
@@ -103,27 +95,18 @@ public class CardButton extends JComponent {
 
         if (hovered || selected) {
             g2.setColor(selected ? new Color(255, 170, 40) : new Color(255, 90, 90));
-            g2.setStroke(new BasicStroke(selected ? 3f : 2f));
-            g2.drawRoundRect(pad, pad, cw - 1, ch - 1, 12, 12);
+            g2.drawRect(pad, pad, cw - 1, ch - 1);
         }
 
         g2.dispose();
     }
 
-    private void drawCardBack(Graphics2D g2, int x, int y, int w, int h) {
+    private void drawCardBack(Graphics g2, int x, int y, int w, int h) {
         g2.setColor(new Color(255, 253, 250));
-        g2.fillRoundRect(x, y, w, h, 12, 12);
+        g2.fillRect(x, y, w, h);
 
         g2.setColor(new Color(205, 60, 60));
-        g2.setStroke(new BasicStroke(3f));
-        g2.drawRoundRect(x + 2, y + 2, w - 5, h - 5, 12, 12);
-
-        g2.setColor(new Color(230, 130, 130, 110));
-        g2.setStroke(new BasicStroke(1f));
-        g2.drawLine(x + 8, y + h - 10, x + w - 8, y + 10);
-        g2.drawLine(x + 8, y + 10, x + w - 8, y + h - 10);
-
-        g2.setColor(new Color(205, 60, 60));
+        g2.drawRect(x + 2, y + 2, w - 5, h - 5);
 
         if (w >= 50) {
             String text = "HORIZON";
@@ -153,13 +136,12 @@ public class CardButton extends JComponent {
         }
     }
 
-    private void drawPlaceholder(Graphics2D g2, int x, int y, int w, int h) {
+    private void drawPlaceholder(Graphics g2, int x, int y, int w, int h) {
         g2.setColor(new Color(255, 253, 250));
-        g2.fillRoundRect(x, y, w, h, 12, 12);
+        g2.fillRect(x, y, w, h);
 
         g2.setColor(new Color(205, 60, 60));
-        g2.setStroke(new BasicStroke(2f));
-        g2.drawRoundRect(x + 1, y + 1, w - 3, h - 3, 12, 12);
+        g2.drawRect(x + 1, y + 1, w - 3, h - 3);
 
         String text = card == null ? "CARD" : card.getName();
         int size = Math.max(9, Math.min(w / 8, 13));

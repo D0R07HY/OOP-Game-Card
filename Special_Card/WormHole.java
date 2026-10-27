@@ -13,15 +13,10 @@ public class WormHole extends SpecialCard
     @Override
     public void playEffect(Player owner, Player target, StarCard targetStar, GameState state) 
     {
-        if (owner == null || owner.getHand().isEmpty()) 
-            {
-                return;
-            }
-
-        playEffect(owner, target, owner.getHand().get(0), state);
+        // ต้องเลือกการ์ดที่จะแลกจาก GUI แล้วเรียก playEffect ตัวที่มี giveCard
     }
 
-    public void playEffect(Player owner, Player target, Card giveCard, GameState state) 
+    public void playEffectWithCard(Player owner, Player target, Card giveCard, GameState state)
     {
         if (owner == null || target == null || giveCard == null) 
             {
@@ -43,8 +38,9 @@ public class WormHole extends SpecialCard
                 return;
             }
 
-        Card taken = target.getHand().remove(RANDOM.nextInt(target.getHand().size()));
-        owner.getHand().remove(giveCard);
+        Card taken = target.getHand().get(RANDOM.nextInt(target.getHand().size()));
+        target.removeCardFromHand(taken);
+        owner.removeCardFromHand(giveCard);
 
         owner.addCardToHand(taken);
         target.addCardToHand(giveCard);

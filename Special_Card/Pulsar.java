@@ -9,12 +9,7 @@ public class Pulsar extends SpecialCard
     @Override
     public void playEffect(Player owner, Player target, StarCard targetStar, GameState state) 
     {
-        if (owner == null || owner.getHand().isEmpty()) 
-            {
-                return;
-            }
-
-        playEffect(owner, target, targetStar, owner.getHand().get(0), state);
+        // ต้องเลือกการ์ดที่จะทิ้งจาก GUI แล้วเรียก playEffect ตัวที่มี cost
     }
 
     public void playEffect(Player owner, Player target, StarCard targetStar, Card cost, GameState state) 
@@ -45,7 +40,12 @@ public class Pulsar extends SpecialCard
                 return;
             }
 
-        owner.getHand().remove(cost);
+        if (!owner.markPulsarUsed())
+            {
+                return;
+            }
+
+        owner.removeCardFromHand(cost);
         owner.addToDropZone(cost);
 
         target.removeStarFromField(targetStar);
