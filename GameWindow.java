@@ -87,10 +87,14 @@ public class GameWindow extends JFrame {
         return new SideHandPanel();
     }
 
-    public void setMyPlayer(Player player) {
-        this.myPlayer = player;
-        updateDeckLabel();
-        updateMyHand(player == null ? new ArrayList<>() : player.getHand());
+        public void setMyPlayer(Player player) {
+            this.myPlayer = player;
+            if (boardPanel != null) {
+                boardPanel.setLocalPlayer(player);
+            }
+
+            updateDeckLabel();
+            updateMyHand(player == null ? new ArrayList<>() : player.getHand());
     }
 
     private void updateDeckLabel() {
