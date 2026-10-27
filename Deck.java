@@ -20,8 +20,7 @@ public class Deck {
     addStars("URANUS",  "Uranus",  4, ImgPath.Uranus,  2, 7);
     addStars("NEPTUNE", "Neptune", 4, ImgPath.Neptune, 2, 0);
 
-    // ---- Special Cards: 25 ใบ ----
-    // เพิ่มการ์ดโจมตีและยูทิลิตี้ให้กดดันได้ตลอดเกม (ไม่เกิน 4 ใบต่อชนิด)
+
     for (int i = 1; i <= 4; i++)
       cards.push(new MeteorStrike("SP-METEOR-" + i, ImgPath.Meteor_Strike));
     for (int i = 1; i <= 4; i++)
