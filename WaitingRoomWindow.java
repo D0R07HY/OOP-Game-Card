@@ -144,7 +144,6 @@ public class WaitingRoomWindow extends JFrame {
 
         if (me == null) {
             me = players.get(0);
-            System.out.println("[Lobby] Username not found in player list, using first player");
         }
 
         GameWindow window = new GameWindow();

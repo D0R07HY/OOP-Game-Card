@@ -494,7 +494,6 @@ public class GameWindow extends JFrame {
     }
 
     private void setStatus(String text) {
-        System.out.println("[UI] " + text);
         if (statusBarPanel != null) {
             statusBarPanel.setStatusText(text);
         }
@@ -530,7 +529,6 @@ public class GameWindow extends JFrame {
 
     // แปลงข้อมูลจาก ProtocolParser
     public void updateBoardState(String state) {
-        System.out.println("[UI] อัปเดตกระดานด้วยข้อมูล: " + state);
 
         if (state == null || state.isEmpty()) return;
 

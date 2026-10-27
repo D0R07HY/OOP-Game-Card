@@ -46,11 +46,9 @@ public class ClientHandler extends Thread {
                     context.processClientAction(message, this);
                 } catch (RuntimeException e) {
                     sendMessage("ERROR#SERVER_ERROR#Unexpected server error");
-                    e.printStackTrace();
                 }
             }
         } catch (IOException e) {
-            System.out.println("Client connection lost: " + socket.getRemoteSocketAddress());
         } finally {
             running = false;
             closeSocket();

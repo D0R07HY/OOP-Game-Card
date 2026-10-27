@@ -52,13 +52,11 @@ public class GameClient {
             try {
                 String line;
                 while ((line = in.readLine()) != null) {
-                    System.out.println("[Server] " + line);
                     String message = line;
 
                     SwingUtilities.invokeLater(() -> dispatch(message));
                 }
             } catch (IOException e) {
-                System.out.println("[Client] Connection closed");
             }
         });
         listener.setDaemon(true);

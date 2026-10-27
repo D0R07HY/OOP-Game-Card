@@ -75,9 +75,7 @@ public class StarCard extends Card {
     @Override
     public void playEffect(Player owner, Player target, StarCard targetStar, GameState state) {
         if (owner.placeStar(this)) {
-            System.out.println("[Effect] " + owner.getUsername() + " placed " + this.getName() + " at orbit " + orbitPosition);
         } else {
-            System.out.println("[Effect] Failed! The orbit position for " + this.getName() + " is already occupied");
         }
     }
 }

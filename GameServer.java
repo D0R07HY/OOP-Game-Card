@@ -22,7 +22,6 @@ public class GameServer implements ServerContext {
 
     public void startInBackground(int port) throws IOException {
         this.serverSocket = new ServerSocket(port);
-        System.out.println("[Server] Waiting for players on port " + port);
 
         Thread serverThread = new Thread(this::acceptLoop);
         serverThread.setDaemon(true);
@@ -41,7 +40,6 @@ public class GameServer implements ServerContext {
                     continue;
                 }
 
-                System.out.println("[Server] New connection from: " + socket.getRemoteSocketAddress());
                 ClientHandler handler = new ClientHandler(socket, this);
                 synchronized (this) {
                     clients.add(handler);
@@ -49,7 +47,6 @@ public class GameServer implements ServerContext {
                 handler.start();
             }
         } catch (IOException e) {
-            System.out.println("[Server] Stopped accepting connections: " + e.getMessage());
         }
     }
 
@@ -92,8 +89,6 @@ public class GameServer implements ServerContext {
                 }
 
                 sender.setPlayer(new Player(username));
-                System.out.println("[Server] Player " + username + " joined the room ("
-                        + countPlayers() + "/" + MAX_PLAYERS + ")");
                 broadcastLobby();
                 break;
             }
@@ -130,7 +125,6 @@ public class GameServer implements ServerContext {
                     start.append("#").append(player.getUsername());
                 }
 
-                System.out.println("[Server] Game started with " + players.size() + " players");
                 broadcast(start.toString());
                 broadcastState();
                 break;
@@ -485,7 +479,6 @@ public class GameServer implements ServerContext {
         Player player = handler.getPlayer();
 
         if (player != null) {
-            System.out.println("[Server] Player " + player.getUsername() + " left the room");
             broadcast("SYSTEM#" + player.getUsername() + "_LEFT");
 
             if (gameState != null && gameState.getPlayers().contains(player)) {
