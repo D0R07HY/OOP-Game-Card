@@ -16,11 +16,8 @@ public class ClientHandler extends Thread {
     private boolean removed;
     private Player player;
 
-    
+
     public ClientHandler(Socket socket, ServerContext context) throws IOException {
-        if (socket == null || context == null) {
-            throw new IllegalArgumentException("socket and context are required");
-        }
 
         this.socket = socket;
         this.context = context;
@@ -42,7 +39,7 @@ public class ClientHandler extends Thread {
                 }
 
                 try {
-                    
+
                     context.processClientAction(message, this);
                 } catch (RuntimeException e) {
                     sendMessage("ERROR#SERVER_ERROR#Unexpected server error");

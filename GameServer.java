@@ -23,7 +23,7 @@ public class GameServer implements ServerContext {
     public void startInBackground(int port) throws IOException {
         this.serverSocket = new ServerSocket(port);
 
-        Thread serverThread = new Thread(this::acceptLoop);
+        Thread serverThread = new Thread(() -> this.acceptLoop());
         serverThread.setDaemon(true);
         serverThread.start();
     }
@@ -46,8 +46,7 @@ public class GameServer implements ServerContext {
                 }
                 handler.start();
             }
-        } catch (IOException e) {
-        }
+        } catch (IOException e) {}
     }
 
     public synchronized void broadcast(String message) {
@@ -72,16 +71,8 @@ public class GameServer implements ServerContext {
                     break;
                 }
 
-                if (parts.length < 2) {
-                    sender.sendMessage("ERR#INVALID_NAME");
-                    break;
-                }
 
                 String username = parts[1].trim();
-                if (username.isEmpty()) {
-                    sender.sendMessage("ERR#INVALID_NAME");
-                    break;
-                }
 
                 if (hasPlayerName(username)) {
                     sender.sendMessage("ERR#NAME_TAKEN");
@@ -306,7 +297,7 @@ public class GameServer implements ServerContext {
             return;
         }
 
-        
+
         if (name.equals("Pulsar")) {
             if (owner.isPulsarUsedThisTurn()) {
                 sendError(sender, "PULSAR_ALREADY_USED");
@@ -328,7 +319,7 @@ public class GameServer implements ServerContext {
             }
         }
 
-        
+
         if (SpecialCard.TARGET_ENEMY_STAR.equals(targetType)) {
             if (target == null || target == owner || targetStar == null || target.isCloaked(targetStar)) {
                 sendError(sender, "INVALID_TARGET");

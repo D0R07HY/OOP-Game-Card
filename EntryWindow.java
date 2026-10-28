@@ -87,7 +87,7 @@ public class EntryWindow extends JFrame {
         }
 
         int port = parsePort(portText);
-        if (port < 0) {
+        if (port < 1024) {
             JOptionPane.showMessageDialog(this, "Invalid port (use 1024-65535)");
             return;
         }
@@ -105,9 +105,6 @@ public class EntryWindow extends JFrame {
 
     private void joinRoom() {
         String username = nameField.getText().trim();
-        if (username.isEmpty()) {
-            return;
-        }
 
         JTextField ipField = new JTextField("127.0.0.1");
         JTextField portField = new JTextField(String.valueOf(GameServer.DEFAULT_PORT));
