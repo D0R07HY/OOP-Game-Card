@@ -420,15 +420,15 @@ public class GameWindow extends JFrame {
 
         String message;
         if (winner == null) {
-            message = "เกมจบแล้ว — ไม่มีผู้เล่นเหลืออยู่";
+            message = "Game Over";
         } else if (winner == myPlayer) {
-            message = "คุณชนะ!";
+            message = "ํYou Win";
         } else {
-            message = winner.getUsername() + " ชนะ";
+            message = winner.getUsername() + " Win";
         }
         setStatus(message);
 
-        JOptionPane.showMessageDialog(this, message, "จบเกม", JOptionPane.INFORMATION_MESSAGE);
+        JOptionPane.showMessageDialog(this, message, "End Game", JOptionPane.INFORMATION_MESSAGE);
 
         if (client != null) {
             client.close();
