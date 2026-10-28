@@ -152,7 +152,7 @@ public class WaitingRoomWindow extends JFrame {
         window.setGameClient(client);
 
         client.setUi(window);
-        client.setOnMessage(window::updateBoardState);
+        client.setOnMessage(state -> window.updateBoardState(state));
 
         window.setVisible(true);
         dispose();

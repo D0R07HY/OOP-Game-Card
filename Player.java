@@ -170,7 +170,7 @@ public class Player {
 
         field[pos] = star;
         star.setOrbitPosition(pos);
-        star.setChangeListener(this::fireStateChanged);
+        star.setChangeListener(() -> this.fireStateChanged());
         fireStateChanged();
         return true;
     }

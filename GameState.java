@@ -28,7 +28,7 @@ public class GameState {
 
         for (Player player : players) {
             if (player != null) {
-                player.setChangeListener(this::fireStateChanged);
+                player.setChangeListener(() -> this.fireStateChanged());
             }
         }
     }
@@ -57,7 +57,7 @@ public class GameState {
     public void nextTurn() {
         if (isGameOver || players == null || players.isEmpty()) return;
 
-        
+
         for (int step = 0; step < players.size(); step++) {
             currentPlayerIndex = (currentPlayerIndex + 1) % players.size();
             Player nextPlayer = getCurrentPlayer();

@@ -23,7 +23,7 @@ public class GameWindow extends JFrame {
     private GameClient client;
     private Consumer<Card> onCardSelected;
 
-    
+
     private final TargetingManager targetingManager = new TargetingManager();
 
     public GameWindow() {
@@ -46,8 +46,8 @@ public class GameWindow extends JFrame {
 
     private void initComponents() {
         boardPanel = new BoardPanel();
-        boardPanel.setOnStarClicked(this::handleStarClick);
-        boardPanel.setOnPlayerClicked(this::handlePlayerClick);
+        boardPanel.setOnStarClicked(star -> this.handleStarClick(star));
+        boardPanel.setOnPlayerClicked(player -> this.handlePlayerClick(player));
         add(boardPanel, BorderLayout.CENTER);
 
         myHandPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 8, 8));
@@ -55,9 +55,9 @@ public class GameWindow extends JFrame {
         myHandPanel.setPreferredSize(new Dimension(0, 150));
         myHandPanel.setBorder(BorderFactory.createMatteBorder(2, 0, 0, 0, new Color(200, 70, 70)));
 
-        
+
         statusBarPanel = new StatusBarPanel();
-        statusBarPanel.addEndTurnListener(this::onEndTurn);
+        statusBarPanel.addEndTurnListener(e -> this.onEndTurn(e));
 
         JPanel southPanel = new JPanel(new BorderLayout());
         southPanel.setOpaque(false);
@@ -527,7 +527,7 @@ public class GameWindow extends JFrame {
         rightHandPanel.repaint();
     }
 
-    
+
     public void updateBoardState(String state) {
 
         if (state == null || state.isEmpty()) return;
