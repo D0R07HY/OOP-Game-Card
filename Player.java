@@ -216,12 +216,13 @@ public class Player {
     }
 
     public boolean checkWinCondition() {
+        int  c =0;
         for (StarCard star : field) {
-            if (star == null) {
-                return false;
+            if (star != null) {
+                c++;
             }
         }
-        return true;
+        return c>=2;
     }
 
     public boolean isHandOverLimit() {
