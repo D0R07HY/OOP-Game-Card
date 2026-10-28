@@ -426,9 +426,15 @@ public class GameWindow extends JFrame {
         } else {
             message = winner.getUsername() + " ชนะ";
         }
-
         setStatus(message);
+
         JOptionPane.showMessageDialog(this, message, "จบเกม", JOptionPane.INFORMATION_MESSAGE);
+
+        if (client != null) {
+            client.close();
+        }
+        new EntryWindow();
+        dispose();
     }
 
     private int otherHandCardCount(Card excluded) {
